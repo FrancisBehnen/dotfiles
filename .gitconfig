@@ -1,0 +1,21 @@
+[init]
+	defaultBranch = main
+[core]
+	editor = vim
+	autocrlf = input
+	excludesfile = /Users/jurriaan/.gitignore_global
+[includeIf "gitdir:~/git/gh/"]
+	path = .gitconfig-gh
+[includeIf "gitdir:~/git/gl/"]
+	path = .gitconfig-gl
+[alias]
+	conflicts = diff --name-only --diff-filter=U
+	l=log --graph --all --pretty=format:'%C(yellow)%h%C(cyan)%d%Creset %s %C(white)- %an, %ar%Creset'
+	ll=log --stat --abbrev-commit
+	lg=log --color --graph --pretty=format:'%C(bold white)%h%Creset -%C(bold green)%d%Creset %s %C(bold green)(%cr)%Creset %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+	llg=log --color --graph --pretty=format:'%C(bold white)%H %d%Creset%n%s%n%+b%C(bold blue)%an <%ae>%Creset %C(bold green)%cr (%ci)' --abbrev-commit
+[url "git@gitlab.com:"]
+	insteadOf = https://gitlab.com/
+[commit]
+	gpgsign = true
+	template = /Users/jurriaan/.stCommitMsg
