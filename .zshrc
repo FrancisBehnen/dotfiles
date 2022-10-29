@@ -152,3 +152,5 @@ alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 # The fuck
 eval $(thefuck --alias)
 
+# .local bin
+export PATH="/Users/jurriaan/.local/bin:$PATH"
