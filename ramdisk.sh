@@ -3,22 +3,36 @@
 PROGRAM_NAME="ramdisk.sh"
 
 usage() {
-    echo "usage: $PROGRAM_NAME [init | copy | help]"
+    echo "usage: $PROGRAM_NAME [init | copy | cron | help]"
     echo "  init      Initialise RAM Disk"
     echo "  copy      Copy files to RAM Disk. (Requires initialised ramdisk first)"
     echo "  sync      Copy files from RAM Disk back to original folders"
     echo "  remove    Remove the RAM Disk (WARNING: Will remove ALL files that reside on the RAM disk)"
+    echo "  cron      Display example crontab entry"
     echo "  help      Display help (this page)"
     echo "When no argument is passed, the default is to run 'init' then 'copy'"
     exit 1
 }
 
+cron_example() {
+	echo "Example crontab configuration:"
+	echo
+	echo "PATH=/usr/local/bin:/bin:/usr/bin"
+	echo "* * * * * /Users/jurriaan/ramdisk.sh sync > /dev/null"
+	echo
+	echo "This will sync from the ramdisk every minute"
+	echo "Also pipes the stdout to null, so only errors are outputted"
+}
+
 # Name of the ramdisk.
 RAM_DISK_NAME="RAM Disk"
-WORKING_DIRECTORY="/Users/jurriaandentoonder"
+WORKING_DIRECTORY="/Users/jurriaan"
 # The directories (or files) to copy to the ramdisk, relative from the working directory
 #declare -a INCLUDED_DIRECTORIES=("git/gh/schuldenteller" "git/gl/energiebespaarders")
-declare -a INCLUDED_DIRECTORIES=("git/gh/amdrxbot")
+#declare -a INCLUDED_DIRECTORIES=("git/gh/amdrxbot")
+#declare -a INCLUDED_DIRECTORIES=("git/gl/deb/")
+#declare -a INCLUDED_DIRECTORIES=("git/infrapod/")
+declare -a INCLUDED_DIRECTORIES=("git/gh/axolotl/")
 
 notification() {
     local message="$1"
@@ -127,6 +141,9 @@ else
     elif [ "$1" = "remove" ]
     then
         remove_ramdisk
+    elif [ "$1" = "cron" ]
+    then
+		cron_example
     else
         echo "Unknown argument $1."
         usage
