@@ -148,3 +148,7 @@ export PATH="$PATH:/Applications/Sublime Text.app/Contents/SharedSupport/bin/"
 
 # Dotfiles git
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+# The fuck
+eval $(thefuck --alias)
+
