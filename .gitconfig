@@ -8,6 +8,14 @@
 	path = .gitconfig-gh
 [includeIf "gitdir:~/git/gl/"]
 	path = .gitconfig-gl
+[includeIf "gitdir:/Volumes/RAM Disk/git/gh/"]
+	path = .gitconfig-gh
+[includeIf "gitdir:/Volumes/RAM Disk/git/gl/"]
+	path = .gitconfig-gl
+[includeIf "gitdir:~/git/infrapod/"]
+	path = .gitconfig-infrapod
+[includeIf "gitdir:/Volumes/RAM Disk/git/infrapod/"]
+	path = .gitconfig-infrapod
 [alias]
 	conflicts = diff --name-only --diff-filter=U
 	l=log --graph --all --pretty=format:'%C(yellow)%h%C(cyan)%d%Creset %s %C(white)- %an, %ar%Creset'
@@ -19,3 +27,10 @@
 [commit]
 	gpgsign = true
 	template = /Users/jurriaan/.stCommitMsg
+[pull]
+	ff = only
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
