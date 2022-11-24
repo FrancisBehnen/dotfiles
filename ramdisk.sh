@@ -1,16 +1,22 @@
 #!/bin/bash
+set -e
 
 PROGRAM_NAME="ramdisk.sh"
 
 usage() {
     echo "usage: $PROGRAM_NAME [init | copy | cron | help]"
-    echo "  init      Initialise RAM Disk"
-    echo "  copy      Copy files to RAM Disk. (Requires initialised ramdisk first)"
-    echo "  sync      Copy files from RAM Disk back to original folders"
-    echo "  remove    Remove the RAM Disk (WARNING: Will remove ALL files that reside on the RAM disk)"
-    echo "  cron      Display example crontab entry"
-    echo "  help      Display help (this page)"
-    echo "When no argument is passed, the default is to run 'init' then 'copy'"
+    echo "  enable       Runs 'init' then 'copy' then 'add_plist'. This the fully automated way of enabling the ramdisk"
+    echo "  disable      Runs 'remove_plist' then 'sync' then 'remove'. This is the fully automated way of disabling and removing the ramdisk"
+    echo "Fine grained commands, to execute only partial steps:"
+    echo "  init         Initialise RAM Disk"
+    echo "  copy         Copy files to RAM Disk. (Requires initialised ramdisk first)"
+    echo "  sync         Copy files from RAM Disk back to original folders"
+    echo "  remove       Remove the RAM Disk (WARNING: Will remove ALL files that reside on the RAM disk)"
+    echo "  cron         Display example crontab entry"
+    echo "  add_plist    Add a plist file to users launchagents and load it, to trigger sync every minute"
+    echo "  remove_plist Remove the plist to trigger sync every minute"
+    echo "  help         Display help (this page)"
+    echo "When no argument is passed, the default is to run 'enable'"
     exit 1
 }
 
@@ -27,12 +33,13 @@ cron_example() {
 # Name of the ramdisk.
 RAM_DISK_NAME="RAM Disk"
 WORKING_DIRECTORY="/Users/jurriaan"
+PLIST_NAME="nl.den-toonder.ramdisk.plist"
 # The directories (or files) to copy to the ramdisk, relative from the working directory
 #declare -a INCLUDED_DIRECTORIES=("git/gh/schuldenteller" "git/gl/energiebespaarders")
 #declare -a INCLUDED_DIRECTORIES=("git/gh/amdrxbot")
 #declare -a INCLUDED_DIRECTORIES=("git/gl/deb/")
-#declare -a INCLUDED_DIRECTORIES=("git/infrapod/")
-declare -a INCLUDED_DIRECTORIES=("git/gh/axolotl/")
+declare -a INCLUDED_DIRECTORIES=("git/infrapod/")
+#declare -a INCLUDED_DIRECTORIES=("git/gh/axolotl/")
 
 notification() {
     local message="$1"
@@ -70,6 +77,19 @@ init_ramdisk() {
         fi
         exit 1
     fi
+}
+
+add_plist() {
+	cp "./$PLIST_NAME" "$HOME/Library/LaunchAgents/"
+	sed -i '' "s#SEDREPLACEPWD#$PWD#g" "$HOME/Library/LaunchAgents/$PLIST_NAME" 
+	launchctl load -w "$HOME/Library/LaunchAgents/$PLIST_NAME"
+	notification "Succesfully copied $PLIST_NAME to LaunchAgents and loaded it!"
+}
+
+remove_plist() {
+	launchctl unload -w "$HOME/Library/LaunchAgents/$PLIST_NAME"
+	rm "$HOME/Library/LaunchAgents/$PLIST_NAME"
+	notification "Succesfully removed plist and unloaded it!"
 }
 
 copy_to_ramdisk() {
@@ -125,6 +145,7 @@ then
     # Default flow (no arguments)
     init_ramdisk default
     copy_to_ramdisk
+    add_plist
 else
     if [ "$1" = "help" ]
         then
@@ -144,6 +165,16 @@ else
     elif [ "$1" = "cron" ]
     then
 		cron_example
+	elif [ "$1" = "enable" ]
+	then
+		init_ramdisk default
+		copy_to_ramdisk
+		add_plist
+	elif [ "$1" = "disable" ]
+	then
+		remove_plist
+		sync_ramdisk
+		remove_ramdisk
     else
         echo "Unknown argument $1."
         usage
