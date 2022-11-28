@@ -1,0 +1,3 @@
+alias ramdisk=$HOME/ramdisk.sh
+alias removemergedbranches=git branch --merged| egrep -v "(^\*|master|main|dev)" | xargs git branch -d
+
