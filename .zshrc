@@ -33,10 +33,16 @@ ZSH_THEME="" # Disabled as per pure instructions
 # DISABLE_AUTO_UPDATE="true"
 
 # Uncomment the following line to automatically update without prompting.
-DISABLE_UPDATE_PROMPT="true"
+# DISABLE_UPDATE_PROMPT="true"
 
 # Uncomment the following line to change how often to auto-update (in days).
 # export UPDATE_ZSH_DAYS=13
+
+# Just update, without a prompt
+# https://github.com/ohmyzsh/ohmyzsh#getting-updates
+zstyle ':omz:update' mode auto
+
+zstyle ':omz:update' frequency 0
 
 # Uncomment the following line if pasting URLs and other text is messed up.
 # DISABLE_MAGIC_FUNCTIONS="true"
@@ -78,8 +84,9 @@ DISABLE_UPDATE_PROMPT="true"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-	git
-	zsh-autosuggestions
+  autoupdate
+  git
+  zsh-autosuggestions
 )
 
 source $ZSH/oh-my-zsh.sh
