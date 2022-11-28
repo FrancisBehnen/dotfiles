@@ -161,3 +161,7 @@ eval $(thefuck --alias)
 
 # .local bin
 export PATH="/Users/jurriaan/.local/bin:$PATH"
+
+# Disable the fucking auto update from brew that takes > 20 mins when installing any new package
+export HOMEBREW_NO_AUTO_UPDATE=1
+

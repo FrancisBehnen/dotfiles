@@ -21,13 +21,13 @@ usage() {
 }
 
 cron_example() {
-	echo "Example crontab configuration:"
-	echo
-	echo "PATH=/usr/local/bin:/bin:/usr/bin"
-	echo "* * * * * /Users/jurriaan/ramdisk.sh sync > /dev/null"
-	echo
-	echo "This will sync from the ramdisk every minute"
-	echo "Also pipes the stdout to null, so only errors are outputted"
+    echo "Example crontab configuration:"
+    echo
+    echo "PATH=/usr/local/bin:/bin:/usr/bin"
+    echo "* * * * * /Users/jurriaan/ramdisk.sh sync > /dev/null"
+    echo
+    echo "This will sync from the ramdisk every minute"
+    echo "Also pipes the stdout to null, so only errors are outputted"
 }
 
 # Name of the ramdisk.
@@ -77,19 +77,22 @@ init_ramdisk() {
         fi
         exit 1
     fi
+    echo "✅ Succesfully initialized ramdisk."
 }
 
 add_plist() {
-	cp "./$PLIST_NAME" "$HOME/Library/LaunchAgents/"
-	sed -i '' "s#SEDREPLACEPWD#$PWD#g" "$HOME/Library/LaunchAgents/$PLIST_NAME" 
-	launchctl load -w "$HOME/Library/LaunchAgents/$PLIST_NAME"
-	notification "Succesfully copied $PLIST_NAME to LaunchAgents and loaded it!"
+    cp "./$PLIST_NAME" "$HOME/Library/LaunchAgents/"
+    sed -i '' "s#SEDREPLACEPWD#$PWD#g" "$HOME/Library/LaunchAgents/$PLIST_NAME" 
+    launchctl load -w "$HOME/Library/LaunchAgents/$PLIST_NAME"
+    echo "✅ Succesfully copied plist file to LaunchAgents and loaded it. The ramdisk is now synced automatically back to persistent storage every minute."
+    notification "Succesfully copied $PLIST_NAME to LaunchAgents and loaded it!"
 }
 
 remove_plist() {
-	launchctl unload -w "$HOME/Library/LaunchAgents/$PLIST_NAME"
-	rm "$HOME/Library/LaunchAgents/$PLIST_NAME"
-	notification "Succesfully removed plist and unloaded it!"
+    launchctl unload -w "$HOME/Library/LaunchAgents/$PLIST_NAME"
+    rm "$HOME/Library/LaunchAgents/$PLIST_NAME"
+    notification "Succesfully removed plist and unloaded it!"
+    echo "✅ Succesfully removed plist file, syncing is now stopped."
 }
 
 copy_to_ramdisk() {
@@ -103,6 +106,7 @@ copy_to_ramdisk() {
         echo "ℹ️    Copying files from $directory"
         rsync -a -R --info=progress2 "$WORKING_DIRECTORY/./$directory" /Volumes/"$RAM_DISK_NAME/" --delete
     done
+    echo "✅ Succesfully copied over contents to ramdisk."
     notification "Succesfully copied over contents to $RAM_DISK_NAME"
 }
 
@@ -117,6 +121,7 @@ sync_ramdisk() {
         echo "ℹ️    Copying files from $directory"
         rsync -a -R --info=progress2 /Volumes/"$RAM_DISK_NAME/./$directory" "$WORKING_DIRECTORY" --delete
     done
+    echo "✅ Succesfully synced ramdisk to persistent storage."
 }
 
 remove_ramdisk() {
@@ -135,7 +140,8 @@ remove_ramdisk() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
-        diskutil eject /Volumes/"$RAM_DISK_NAME"
+        diskutil eject /Volumes/"$RAM_DISK_NAME" 
+        echo "✅ Succesfully removed ramdisk."
         notification "Succesfully removed $RAM_DISK_NAME, remember to disable the cron job for sync!"
     fi
 }
@@ -164,17 +170,17 @@ else
         remove_ramdisk
     elif [ "$1" = "cron" ]
     then
-		cron_example
-	elif [ "$1" = "enable" ]
-	then
-		init_ramdisk default
-		copy_to_ramdisk
-		add_plist
-	elif [ "$1" = "disable" ]
-	then
-		remove_plist
-		sync_ramdisk
-		remove_ramdisk
+        cron_example
+    elif [ "$1" = "enable" ]
+    then
+        init_ramdisk default
+        copy_to_ramdisk
+        add_plist
+    elif [ "$1" = "disable" ]
+    then
+        remove_plist
+        sync_ramdisk
+        remove_ramdisk
     else
         echo "Unknown argument $1."
         usage
