@@ -30,6 +30,6 @@ shift + alt - space : yabai -m space --mirror y-axis
 shift + alt - r : yabai -m space --rotate 90
 
 # Move windows across spaces
-shift + alt - right : cur_window=$(yabai -m query --windows --window | jq '.id') && yabai -m window --space next && yabai -m window --focus ${cur_window}
-shift + alt - left  : cur_window=$(yabai -m query --windows --window | jq '.id') && yabai -m window --space prev && yabai -m window --focus ${cur_window}
+ctrl + shift + alt - right : cur_window=$(yabai -m query --windows --window | jq '.id') && yabai -m window --space next && yabai -m window --focus ${cur_window}
+ctrl + shift + alt - left  : cur_window=$(yabai -m query --windows --window | jq '.id') && yabai -m window --space prev && yabai -m window --focus ${cur_window}
 
