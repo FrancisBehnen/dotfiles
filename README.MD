@@ -19,14 +19,18 @@ config config --local status.showUntrackedFiles no
 ### Cloning existing dotfiles repository on new machine
 If you want to install an already existig dotfiles repository on a new machine, you can simply clone the existing repository, but be mindful of some extra possible steps.
 
-First of all, copy-paste the above `alias config...` command to your terminal, to add it once to the terminal session.
-This is needed as during this setup, your custom `.zshrc` is not yet cloned.
+First of all, copy-paste the above `alias config...` command to your terminal, to add it once the current shell scope.
+This is needed because your custom `.zshrc` is not yet cloned.
 Also, be sure that the folder that you are storing the repository in is excluded in your `.gitignore` file.
 As an example, in this repository that means that `.dotfiles` is added to the `.gitignore` file: https://github.com/Fastjur/dotfiles/blob/main/.gitignore#L1
 
-Then you are ready to clone the repository on a new machine:
+Then you are ready to clone the repository on a new machine
 ```bash
 git clone --bare --recurse-submodules <git-repo-url> $HOME/.dotfiles
+```
+and to check it out:
+```bash
+config checkout
 ```
 
 Note the `--recurse-submodules` flag, this is used to clone installations of, per example, oh-my-zsh plugins such as [powerlevel10k](https://github.com/romkatv/powerlevel10k).
@@ -38,6 +42,11 @@ config submodule update --init --recursive
 ```
 
 This will initialize and update the submodules such that your dotfiles repository starts tracking them.
+
+Also, do not forget to again set `showUntrackedFiles` to `no`:
+```bash
+config config --local status.showUntrackedFiles no
+```
 
 ## Usage
 To use, simply add any files you want to keep track of using the created `config` alias:
