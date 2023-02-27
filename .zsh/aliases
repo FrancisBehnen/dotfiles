@@ -1,3 +1,3 @@
 alias ramdisk=$HOME/ramdisk.sh
 alias removemergedbranches=git branch --merged| egrep -v "(^\*|master|main|dev)" | xargs git branch -d
-alias discordhackintosh=MKL_DEBUG_CPU_TYPE=5 /Applications/Discord.app/Contents/MacOS/Discord
+alias discordhackintosh="MKL_DEBUG_CPU_TYPE=5 /Applications/Discord.app/Contents/MacOS/Discord"
