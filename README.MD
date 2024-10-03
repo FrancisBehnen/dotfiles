@@ -34,7 +34,7 @@ config checkout
 ```
 
 Note the `--recurse-submodules` flag, this is used to clone installations of, per example, oh-my-zsh plugins such as [powerlevel10k](https://github.com/romkatv/powerlevel10k).
-(For an example of submodule definities in this repository, see [this file](https://github.com/Fastjur/dotfiles/blob/main/.gitmodules) or [this commit](https://github.com/Fastjur/dotfiles/commit/6f4b5010a54d9011265993fbca5c97a4ba22a135)).
+(For an example of submodule definitions in this repository, see [this file](https://github.com/Fastjur/dotfiles/blob/main/.gitmodules) or [this commit](https://github.com/Fastjur/dotfiles/commit/6f4b5010a54d9011265993fbca5c97a4ba22a135)).
 
 If the repository has already been cloned, and you need to update/initialize the submodules, run the following command:
 ```bash
@@ -62,7 +62,6 @@ Be aware that any files not added to the repository will not be shown!
 If you want to add submodules, per example to install new `oh-my-zsh` plugins or themes, the easiest step is to follow the plugin/theme instructions, but instead of running `git clone`, instead run `config submodule add <plugin/theme git url> <plugin/theme installation location>`
 
 #### oh-my-zsh custom plugins and themes
-By default, `oh-my-zsh` ignores the `.oh-my-zsh/custom` folder.
-Anything installed using the above steps as submodules will be ignored, and thus not work with your dotfile repository.
-The easiest solution is to alter the `$ZSH_CUSTOM` variable in your [`.zshrc`](https://github.com/Fastjur/dotfiles/blob/main/.zshrc#L88), and install all custom plugins/themes into that directory as submodules, instead of in the `.oh-my-zsh` main directory.
-This way these custom plugins and directories are not ignored.
+Installing a submodule in a folder of another submodule is not supported by git.
+Therefore, before installing custom oh-my-zsh themes you should alter the `$ZSH_CUSTOM` variable in your [`.zshrc`](https://github.com/Fastjur/dotfiles/blob/main/.zshrc#L88) to for example `ZSH_CUSTOM=$HOME/.oh-my-zsh_custom`, and install all custom plugins/themes into that directory.
+This way these custom plugins are "top-level" submodules of your dotfiles repo, next to oh-my-zsh itself.
