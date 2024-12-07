@@ -1,2 +1,8 @@
 tap "homebrew/bundle"
+cask "bettertouchtool2.716"
+cask "firefox"
+cask "flux"
+cask "lastpass"
+cask "selfcontrol"
 cask "spotify"
+cask "telegram"
