@@ -32,7 +32,7 @@ HYPHEN_INSENSITIVE="true"
 
 # Uncomment one of the following lines to change the auto-update behavior
 # zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
+zstyle ':omz:update' mode auto      # update automatically without asking
 # zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 
 # Uncomment the following line to change how often to auto-update (in days).
@@ -54,7 +54,7 @@ HYPHEN_INSENSITIVE="true"
 # You can also set it to another string to have that shown instead of the default red dots.
 # e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
 # Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
+COMPLETION_WAITING_DOTS="true"
 
 # Uncomment the following line if you want to disable marking untracked files
 # under VCS as dirty. This makes repository status check for large repositories
@@ -69,6 +69,11 @@ HYPHEN_INSENSITIVE="true"
 # see 'man strftime' for details.
 # HIST_STAMPS="mm/dd/yyyy"
 
+# Disable Y/n update prompt when starting terminal
+# Auto-update is enabled at line 35 of this file
+DISABLE_UPDATE_PROMPT="true"
+
+## Plugin stuff starts here
 # Would you like to use another custom folder than $ZSH/custom?
 ZSH_CUSTOM=$HOME/.oh-my-zsh_custom
 
@@ -80,8 +85,15 @@ ZSH_CUSTOM=$HOME/.oh-my-zsh_custom
 plugins=(git
 	 autoupdate
 	 zsh-autosuggestions
+	 macports
 )
 
+## Plugin configurations
+# Autoupdate 
+ZSH_CUSTOM_AUTOUPDATE_QUIET=true
+ZSH_CUSTOM_AUTOUPDATE_NUM_WORKERS=8
+
+# Source oh-my-zsh, should always go after plugin configuration, so variables are taken into account
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
@@ -115,11 +127,6 @@ source $ZSH/oh-my-zsh.sh
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-## Plugin configurations
-# Autoupdate 
-ZSH_CUSTOM_AUTOUPDATE_QUIET=true
-ZSH_CUSTOM_AUTOUPDATE_NUM_WORKERS=8
 
 ### End of oh-my-zsh and oh-my-zsh plugin stuff ###
 
