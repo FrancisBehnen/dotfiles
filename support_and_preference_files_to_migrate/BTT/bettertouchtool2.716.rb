@@ -1,0 +1,42 @@
+cask "bettertouchtool2.716" do
+  # version "4.729,2024100201"
+  # sha256 "7f6bb373b19755b54e9a2c52abbdb2f18435eb1cf67d125ce3d2859d9dc81751"
+  version "2.716"
+  sha256 "2740b162fc44c674313e0c44bb9c54d1cd648a3bf1fcf0f44b1b97d0a4327678"
+
+  
+  url "https://folivora.ai/releases/btt#{version}.zip"
+  # url "https://folivora.ai/releases/btt#{version.csv.first}-#{version.csv.second}.zip"
+  name "BetterTouchTool"
+  desc "Tool to customise input devices and automate computer systems"
+  homepage "https://folivora.ai/"
+
+  livecheck do
+    url "https://folivora.ai/releases/"
+    regex(/btt(\d+(?:[._-]\d+)*)\.zip.*?(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/i)
+    strategy :page_match do |page, regex|
+      current_version, current_build = version.csv
+      version, build = page.scan(regex).max_by { |match| Time.parse(match[1]) }&.first&.split("-", 2)
+
+      # Throttle updates to every 5th release.
+      if build && current_build.to_i + 5 > build.to_i
+        version = current_version
+        build = current_build
+      end
+
+      "#{version},#{build}"
+    end
+  end
+
+  auto_updates false
+  depends_on macos: ">= :catalina"
+
+  app "BetterTouchTool.app"
+
+  uninstall quit: "com.hegenberg.BetterTouchTool"
+
+  zap trash: [
+    "~/Library/Application Support/BetterTouchTool",
+    "~/Library/Preferences/com.hegenberg.BetterTouchTool.plist",
+  ]
+end
