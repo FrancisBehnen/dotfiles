@@ -133,3 +133,26 @@ source $ZSH/oh-my-zsh.sh
 # Create config alias for the dotfiles repo
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
+# Source nvm
+source /opt/local/share/nvm/init-nvm.sh
+
+# Put cursor-agent on path
+export PATH="$HOME/.local/bin:$PATH"
+
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/francisbehnen/.lmstudio/bin"
+# End of LM Studio CLI section
+
+
+# Task Master aliases added on 10/9/2025
+alias tm='task-master'
+alias taskmaster='task-master'
+
+# pnpm
+export PNPM_HOME="/Users/francisbehnen/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
