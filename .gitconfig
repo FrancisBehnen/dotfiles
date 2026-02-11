@@ -3,3 +3,5 @@
 # Please adapt and uncomment the following lines:
 	name = Francis Behnen
 	email = 15660621+FrancisBehnen@users.noreply.github.com
+[init]
+	defaultBranch = main

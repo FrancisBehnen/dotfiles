@@ -133,3 +133,20 @@ source $ZSH/oh-my-zsh.sh
 # Create config alias for the dotfiles repo
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+source ~/.shell_functions
+
+export PATH="$HOME/.npm-global/bin:$PATH"
+
+export PATH="$HOME/.local/bin:$PATH"
+
+# bun completions
+[ -s "/Users/francisbehnen/.bun/_bun" ] && source "/Users/francisbehnen/.bun/_bun"
+
+
+# Set claude code package manager preference
+export CLAUDE_PACKAGE_MANAGER=bun
