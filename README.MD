@@ -6,7 +6,7 @@ To initialize a bare repository, run:
 git init --bare $HOME/.dotfiles
 ```
 
-Then add the following alias to your `.bashrc` or `.zshrc`:
+Then add the following alias to your `.zshrc`:
 ```zsh
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 ```
@@ -22,7 +22,7 @@ If you want to install an already existig dotfiles repository on a new machine, 
 First of all, copy-paste the above `alias config...` command to your terminal, to add it once the current shell scope.
 This is needed because your custom `.zshrc` is not yet cloned.
 Also, be sure that the folder that you are storing the repository in is excluded in your `.gitignore` file.
-As an example, in this repository that means that `.dotfiles` is added to the `.gitignore` file: https://github.com/Fastjur/dotfiles/blob/main/.gitignore#L1
+As an example, in this repository that means that `.dotfiles` is added to the `.gitignore` file: https://github.com/FrancisBehnen/dotfiles/blob/main/.gitignore#L1
 
 Then you are ready to clone the repository on a new machine
 ```bash
@@ -34,7 +34,7 @@ config checkout
 ```
 
 Note the `--recurse-submodules` flag, this is used to clone installations of, per example, oh-my-zsh plugins such as [powerlevel10k](https://github.com/romkatv/powerlevel10k).
-(For an example of submodule definitions in this repository, see [this file](https://github.com/Fastjur/dotfiles/blob/main/.gitmodules) or [this commit](https://github.com/Fastjur/dotfiles/commit/6f4b5010a54d9011265993fbca5c97a4ba22a135)).
+(For an example of submodule definitions in this repository, see [this file](https://github.com/FrancisBehnen/dotfiles/blob/main/.gitmodules) or [this commit](https://github.com/FrancisBehnen/dotfiles/commit/6f4b5010a54d9011265993fbca5c97a4ba22a135)).
 
 If the repository has already been cloned, and you need to update/initialize the submodules, run the following command:
 ```bash
@@ -63,5 +63,5 @@ If you want to add submodules, per example to install new `oh-my-zsh` plugins or
 
 #### oh-my-zsh custom plugins and themes
 Installing a submodule in a folder of another submodule is not supported by git.
-Therefore, before installing custom oh-my-zsh themes you should alter the `$ZSH_CUSTOM` variable in your [`.zshrc`](https://github.com/Fastjur/dotfiles/blob/main/.zshrc#L88) to for example `ZSH_CUSTOM=$HOME/.oh-my-zsh_custom`, and install all custom plugins/themes into that directory.
+Therefore, before installing custom oh-my-zsh themes you should alter the `$ZSH_CUSTOM` variable in your [`.zshrc`](https://github.com/FrancisBehnen/dotfiles/blob/main/.zshrc#L88) to for example `ZSH_CUSTOM=$HOME/.oh-my-zsh_custom`, and install all custom plugins/themes into that directory.
 This way these custom plugins are "top-level" submodules of your dotfiles repo, next to oh-my-zsh itself.
