@@ -2,8 +2,15 @@ docker
 gh
 git
 hivex
+iTerm2
+jq
 npm10
 pnpm
 py311-pip
+texlive-basic
+texlive-fonts-extra
+texlive-fonts-recommended
+texlive-latex
+texlive-xetex
 tmux
 vim
