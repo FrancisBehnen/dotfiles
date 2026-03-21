@@ -110,8 +110,10 @@ After cloning and checking out dotfiles on a new machine:
    git clone https://github.com/affaan-m/everything-claude-code.git ~/Documents/Code/everything-claude-code
    cd ~/Documents/Code/everything-claude-code
    git remote add upstream https://github.com/affaan-m/everything-claude-code.git
+   npm install
    ./install.sh typescript python golang
    ```
+   The install script requires Node.js (`sudo port install nodejs22`) and npm dependencies.
    The dotfiles checkout already placed `shell.md` (our custom rule) in `~/.claude/rules/common/`; the install script adds the rest without overwriting it.
 3. **Plugins** (skills, agents, hooks) restore automatically from `settings.json` via the marketplace system on first launch.
 4. **Copy auto-memory** from the old machine to preserve project context:

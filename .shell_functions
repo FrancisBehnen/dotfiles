@@ -80,6 +80,16 @@ claude-sync-rules() {
     return 1
   }
 
+  # Install npm dependencies if missing or outdated
+  if [[ ! -d "$ecc_dir/node_modules" ]] || \
+     [[ "$ecc_dir/package-lock.json" -nt "$ecc_dir/node_modules/.package-lock.json" ]]; then
+    echo "Installing npm dependencies..."
+    npm --prefix "$ecc_dir" install || {
+      echo "Error: npm install failed. Is node installed? (sudo port install nodejs22)" >&2
+      return 1
+    }
+  fi
+
   echo "Installing rules for: ${languages[*]}"
   "$ecc_dir/install.sh" "${languages[@]}"
 
