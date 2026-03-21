@@ -65,3 +65,31 @@ If you want to add submodules, per example to install new `oh-my-zsh` plugins or
 Installing a submodule in a folder of another submodule is not supported by git.
 Therefore, before installing custom oh-my-zsh themes you should alter the `$ZSH_CUSTOM` variable in your [`.zshrc`](https://github.com/FrancisBehnen/dotfiles/blob/main/.zshrc#L88) to for example `ZSH_CUSTOM=$HOME/.oh-my-zsh_custom`, and install all custom plugins/themes into that directory.
 This way these custom plugins are "top-level" submodules of your dotfiles repo, next to oh-my-zsh itself.
+
+### Installing pinned Homebrew versions with `vintage`
+
+Some apps need a specific older version (e.g. due to licensing or OS compatibility). The `vintage` function in `.shell_functions` installs a pinned version via the `homebrew/local` tap:
+
+```bash
+vintage <formula-or-cask> <version>
+```
+
+For example:
+```bash
+vintage bettertouchtool 2.716
+vintage google-drive 113.0.1
+```
+
+These version-pinned casks use a separate name (e.g. `bettertouchtool2.716`) and are not affected by `brew upgrade`.
+
+### Migrating application preferences
+
+Application preference files (e.g. for BetterTouchTool and iTerm2) are tracked in `support_and_preference_files_to_migrate/Home/`, mirroring their path relative to `~/`.
+
+On a new machine, after installing the apps, run the link script to symlink them into place:
+```bash
+cd ~/support_and_preference_files_to_migrate
+./link_preferences.zsh
+```
+
+See `support_and_preference_files_to_migrate/README.md` for details and caveats.
