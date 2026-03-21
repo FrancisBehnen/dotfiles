@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(config ls-tree:*)",
+      "Bash(config diff:*)",
+      "Bash(config add:*)",
+      "Bash(config commit:*)",
+      "Bash(zsh ./link_preferences.zsh)",
+      "Read(//Users/francisbehnen/support_and_preference_files_to_migrate/$HOME/Library/Application Support/BetterTouchTool/**)",
+      "Bash(readlink \"$HOME/Library/Application Support/BetterTouchTool/btt_user_variables.plist\")",
+      "Bash(brew bundle:*)",
+      "Bash(port installed:*)",
+      "Bash(config log:*)",
+      "Bash(port outdated:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "Bash(config check-ignore:*)"
+    ]
+  }
+}

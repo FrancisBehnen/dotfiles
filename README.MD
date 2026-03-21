@@ -93,3 +93,34 @@ cd ~/support_and_preference_files_to_migrate
 ```
 
 See `support_and_preference_files_to_migrate/README.md` for details and caveats.
+
+### Setting up Claude Code
+
+The dotfiles repo tracks Claude Code's portable configuration:
+- `.claude/settings.json` — model, plugins, effort level, statusline
+- `.claude/settings.local.json` — project-specific permissions (paths may need adjusting)
+- `.claude/statusline.sh` — custom statusline script
+- `.claude/rules/common/shell.md` — custom rules specific to this setup
+
+After cloning and checking out dotfiles on a new machine:
+
+1. **Install Claude Code** and sign in
+2. **Install rules** from [everything-claude-code](https://github.com/affaan-m/everything-claude-code):
+   ```bash
+   git clone https://github.com/affaan-m/everything-claude-code.git ~/Documents/Code/everything-claude-code
+   cd ~/Documents/Code/everything-claude-code
+   git remote add upstream https://github.com/affaan-m/everything-claude-code.git
+   ./install.sh typescript python golang
+   ```
+   The dotfiles checkout already placed `shell.md` (our custom rule) in `~/.claude/rules/common/`; the install script adds the rest without overwriting it.
+3. **Plugins** (skills, agents, hooks) restore automatically from `settings.json` via the marketplace system on first launch.
+4. **Copy auto-memory** from the old machine to preserve project context:
+   ```bash
+   # On old machine:
+   tar czf claude-memory.tar.gz ~/.claude/projects/*/memory/
+   # On new machine:
+   tar xzf claude-memory.tar.gz -C /
+   ```
+   Memory files are optional — Claude Code rebuilds them over time — but they save having to re-explain project context.
+
+To keep rules up-to-date, run `claude-sync-rules` (defined in `.shell_functions`). This pulls the latest from upstream and reinstalls rules while preserving custom files.
