@@ -136,6 +136,6 @@ Run these steps periodically (or ask Claude Code in `~/` to do it) to keep every
 - `port installed > ~/myports` — snapshot installed MacPorts
 - `port echo requested | awk '{print $1}' | sort > ~/requested_ports` — sync requested ports
 - `config submodule update --remote` — update oh-my-zsh plugins/themes
-- Check preference symlinks: `ls -la ~/Library/Application\ Support/BetterTouchTool/btt*` — re-run `link_preferences.zsh` if any broke (BTT atomic writes replace symlinks)
+- Check preference symlinks: `ls -la ~/Library/Application\ Support/BetterTouchTool/btt*` — if any symlink was replaced by a regular file (BTT atomic writes), copy the updated file back into `support_and_preference_files_to_migrate/Home/` first, then re-run `link_preferences.zsh` to restore symlinks
 - `config diff` — review changes to tracked files (`.zshrc`, `.shell_functions`, `.claude/settings.json`, etc.)
 - Commit and push any changes
