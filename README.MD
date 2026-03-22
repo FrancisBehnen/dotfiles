@@ -126,3 +126,16 @@ After cloning and checking out dotfiles on a new machine:
    Memory files are optional — Claude Code rebuilds them over time — but they save having to re-explain project context.
 
 To keep rules up-to-date, run `claude-sync-rules` (defined in `.shell_functions`). This pulls the latest from upstream and reinstalls rules while preserving custom files.
+
+### Periodic maintenance
+
+Run these steps periodically (or ask Claude Code in `~/` to do it) to keep everything in sync:
+
+- `claude-sync-rules` — pull latest ECC rules from upstream
+- `brew bundle dump --force --file=~/Brewfile` — sync Brewfile with installed packages
+- `port installed > ~/myports` — snapshot installed MacPorts
+- `port echo requested | awk '{print $1}' | sort > ~/requested_ports` — sync requested ports
+- `config submodule update --remote` — update oh-my-zsh plugins/themes
+- Check preference symlinks: `ls -la ~/Library/Application\ Support/BetterTouchTool/btt*` — re-run `link_preferences.zsh` if any broke (BTT atomic writes replace symlinks)
+- `config diff` — review changes to tracked files (`.zshrc`, `.shell_functions`, `.claude/settings.json`, etc.)
+- Commit and push any changes
