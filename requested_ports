@@ -1,6 +1,7 @@
 docker
 gh
 git
+go2port
 hivex
 iTerm2
 jq
@@ -11,6 +12,8 @@ texlive-basic
 texlive-fonts-extra
 texlive-fonts-recommended
 texlive-latex
+texlive-latex-extra
 texlive-xetex
 tmux
+tmux-pasteboard
 vim

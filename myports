@@ -68,6 +68,7 @@ The following ports are currently installed:
   go @1.26.0_0
   go @1.26.1_0 (active)
   go-md2man @2.0.7_0 (active)
+  go2port @20250207_0 (active)
   gobject-introspection @1.78.1_5
   gobject-introspection @1.78.1_6 (active)
   gpgme @1.24.3_1
@@ -486,8 +487,10 @@ The following ports are currently installed:
   texlive-latex-recommended @78228_0+doc (active)
   texlive-pictures @74487_0+doc
   texlive-pictures @78219_0+doc (active)
-  texlive-plain-generic @74472_0+doc (active)
-  texlive-xetex @74520_0+doc (active)
+  texlive-plain-generic @74472_0+doc
+  texlive-plain-generic @78219_0+doc (active)
+  texlive-xetex @74520_0+doc
+  texlive-xetex @77987_0+doc (active)
   tiff @4.7.1_0 (active)
   tmux @3.6a_0+sixel (active)
   tmux-pasteboard @2.9_0
@@ -498,7 +501,8 @@ The following ports are currently installed:
   xar @1.8.0.498_0
   xar @1.8.0.501_1 (active)
   xmlcatmgr @2.2_1 (active)
-  xmlto @0.0.29_0 (active)
+  xmlto @0.0.29_0
+  xmlto @0.0.29_2 (active)
   xorg-libice @1.1.2_0 (active)
   xorg-libpthread-stubs @0.5_0 (active)
   xorg-libsm @1.2.6_0 (active)

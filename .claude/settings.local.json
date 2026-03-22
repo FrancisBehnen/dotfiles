@@ -14,7 +14,15 @@
       "Bash(port outdated:*)",
       "Bash(gh repo:*)",
       "Bash(gh api:*)",
-      "Bash(config check-ignore:*)"
+      "Bash(config check-ignore:*)",
+      "Bash(config status:*)",
+      "Bash(git:*)",
+      "Bash(/Users/francisbehnen/Documents/Code/everything-claude-code/install.sh typescript:*)",
+      "Bash(source /Users/francisbehnen/.shell_functions)",
+      "Bash(claude-sync-rules)",
+      "Bash(port echo:*)",
+      "Bash(config submodule:*)",
+      "Bash(zsh /Users/francisbehnen/support_and_preference_files_to_migrate/link_preferences.zsh)"
     ]
   }
 }
