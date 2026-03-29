@@ -1,0 +1,40 @@
+#!/bin/bash
+# Update Claude Code rules from everything-claude-code
+# Pulls latest from upstream, runs install script, restores custom rules
+
+set -e
+
+ecc_dir="$HOME/Documents/Code/everything-claude-code"
+languages=(typescript python golang)
+
+if [[ ! -d "$ecc_dir" ]]; then
+  echo "Error: ECC repo not found at $ecc_dir" >&2
+  echo "Clone it: git clone https://github.com/affaan-m/everything-claude-code.git $ecc_dir" >&2
+  exit 1
+fi
+
+echo "Pulling latest from upstream..."
+git -C "$ecc_dir" fetch upstream
+git -C "$ecc_dir" merge upstream/main --ff-only || {
+  echo "Warning: fast-forward merge failed. You may need to resolve conflicts manually." >&2
+  exit 1
+}
+
+# Install npm dependencies if missing or outdated
+if [[ ! -d "$ecc_dir/node_modules" ]] || \
+   [[ "$ecc_dir/package-lock.json" -nt "$ecc_dir/node_modules/.package-lock.json" ]]; then
+  echo "Installing npm dependencies..."
+  npm --prefix "$ecc_dir" install || {
+    echo "Error: npm install failed. Is node installed? (sudo port install nodejs22)" >&2
+    exit 1
+  }
+fi
+
+echo "Installing rules for: ${languages[*]}"
+"$ecc_dir/install.sh" "${languages[@]}"
+
+# Restore custom rules tracked in dotfiles that ECC might overwrite
+config checkout -- .claude/rules/common/shell.md 2>/dev/null && \
+  echo "Restored custom rule: common/shell.md"
+
+echo "Rules synced."

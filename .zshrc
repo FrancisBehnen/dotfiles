@@ -138,7 +138,7 @@ alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-source ~/.shell_functions
+export PATH="$HOME/scripts:$PATH"
 
 export PATH="$HOME/.npm-global/bin:$PATH"
 

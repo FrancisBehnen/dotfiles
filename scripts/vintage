@@ -1,0 +1,65 @@
+#!/bin/bash
+# Install a specific version of a Homebrew formula
+# Usage: vintage <formula> <version>
+
+set -e
+
+if [ $# -ne 2 ]; then
+  echo "Usage: vintage <formula> <version>"
+  exit 1
+fi
+
+# Figure out the relevant tap
+brew_tap=""
+is_cask=false
+if brew search --cask "/^${1}$/" &> /dev/null; then
+  brew_tap="homebrew/cask"
+  is_cask=true
+else
+  brew_tap="homebrew/core"
+fi
+
+# Ensure the appropriate tap is tapped and up to date
+if brew tap | grep -xq "${brew_tap}"; then
+  brew update
+else
+  brew tap --force "${brew_tap}"
+fi
+
+# Ensure homebrew/local is created
+brew tap | grep -xq homebrew/local \
+  || brew tap homebrew/local
+
+if [ "${is_cask}" = false ]; then
+  # If the formula is already installed, re-link it
+  if brew list -1 | grep -xq "${1}@${2}"; then
+    brew unlink "${1}@${2}"
+    brew link --overwrite "${1}@${2}"
+    exit 0
+  fi
+
+  # Install the formula and ensure it's linked
+  brew install "homebrew/local/${1}@${2}" \
+    || brew link --overwrite "${1}@${2}"
+else (
+  # Sub shell to make `cd` safe
+  cd "$(brew --repository "${brew_tap}")" || exit 1
+
+  # Emulate `brew extract` for casks
+  cask_path=$(git ls-files 'Casks/*' | grep -E "/${1}\.rb$")
+  version_match=$(git rev-list --all "${cask_path}" \
+    | xargs -n1 -I% git --no-pager grep --fixed-strings "version \"${2}\"" % -- "${cask_path}" \
+    2> /dev/null | head -1)
+  commit_hash="${version_match%%:*}"
+  local_cask_dir="$(brew --repository homebrew/local)/Casks"
+  if [ ! -d "${local_cask_dir}" ]; then
+    mkdir -p "${local_cask_dir}"
+  fi
+  local_cask_file="${local_cask_dir}/${1}@${2}.rb"
+  git show "${commit_hash}:${cask_path}" \
+    | sed "s/cask \"${1}\"/cask \"${1}@${2}\"/" \
+    > "${local_cask_file}"
+
+  # Install the formula
+  brew install --cask "homebrew/local/${1}@${2}"
+) fi
