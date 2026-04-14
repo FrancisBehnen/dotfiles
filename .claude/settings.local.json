@@ -24,5 +24,18 @@
       "Bash(config submodule:*)",
       "Bash(zsh /Users/francisbehnen/support_and_preference_files_to_migrate/link_preferences.zsh)"
     ]
+  },
+
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "denyRead": [
+        "~/.ssh/"
+      ],
+      "allowRead": [
+	"~/",
+        "."
+      ]
+    }
   }
 }

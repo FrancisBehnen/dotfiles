@@ -26,6 +26,13 @@ if [ -e "$NEW_DIR" ]; then
     exit 1
 fi
 
+# Validate that the parent of the target directory exists
+NEW_PARENT_DIR=$(dirname "$NEW_DIR")
+if [ "$NEW_PARENT_DIR" != "." ] && [ ! -d "$NEW_PARENT_DIR" ]; then
+    echo "Error: Parent directory does not exist: $NEW_PARENT_DIR"
+    exit 1
+fi
+
 # Convert paths to Claude's format (replace / and . with -)
 # Need to do this BEFORE moving the directory to check for existing context
 OLD_ENCODED=$(echo "$OLD_ABS" | sed 's/[\/.]/-/g')

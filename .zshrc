@@ -150,3 +150,9 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Set claude code package manager preference
 export CLAUDE_PACKAGE_MANAGER=bun
+
+# Set bin folder for claude-remote
+export PATH="$HOME/bin:$PATH"
+
+# rm-safely - Safe rm command
+source "/Users/francisbehnen/.rm-safely" >/dev/null 2>&1

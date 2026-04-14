@@ -1,5 +1,94 @@
 {
-  "model": "opus",
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(yarn *)",
+      "Bash(pnpm *)",
+      "Bash(bun *)",
+      "Bash(bunx *)",
+      "Bash(pip *)",
+      "Bash(pipx *)",
+      "Bash(pipenv *)",
+      "Bash(poetry *)",
+      "Bash(pytest *)",
+      "Bash(coverage *)",
+      "Bash(jest *)",
+      "Bash(vitest *)",
+      "Bash(go test *)",
+      "Bash(mvn *)",
+      "Bash(gradle *)",
+      "Bash(eslint *)",
+      "Bash(prettier *)",
+      "Bash(ruff *)",
+      "Bash(black *)",
+      "Bash(isort *)",
+      "Bash(rm *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(touch *)",
+      "Bash(ls *)",
+      "Bash(cd *)",
+      "Bash(pwd)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(find *)",
+      "Bash(rg *)",
+      "Bash(ag *)",
+      "Bash(fd *)",
+      "Bash(tree *)",
+      "Bash(du *)",
+      "Bash(df *)",
+      "Bash(wc *)",
+      "Bash(which *)",
+      "Bash(command *)",
+      "Bash(* --version*)",
+      "Bash(* --help*)",
+      "Bash(mutagen *)",
+      "Bash(tmux *)",
+      "Bash(ssh *)"
+    ],
+    "deny": [
+      "Bash(rm --rm*)",
+      "Bash(rm --empty-trash*)",
+      "Bash(rm -rf //)",
+      "Bash(rm -rf ~/)",
+      "Read(~/.ssh/**)",
+      "Edit(~/.ssh/**)",
+      "Read(~/.gnupg/**)",
+      "Edit(~/.gnupg/**)",
+      "Read(/etc/**)",
+      "Edit(/etc/**)"
+    ],
+    "ask": [
+      "Bash(git*push*--force*)",
+      "Bash(git*push*-f *)",
+      "Bash(git*push*-f)",
+      "Bash(git*reset*--hard*)",
+      "Bash(git*clean*-fdx*)",
+      "Bash(sudo *)",
+      "Bash(chown *)",
+      "Bash(chmod 7*)",
+      "Bash(mkfs *)",
+      "Bash(dd if=*)",
+      "Bash(tmux send-keys *)",
+      "Bash(gh pr close*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh issue close*)",
+      "Bash(gh issue delete*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh repo archive*)",
+      "Bash(gh release delete*)",
+      "Bash(gh label delete*)",
+      "Bash(gh api -X DELETE*)",
+      "Bash(gh api --method DELETE*)"
+    ]
+  },
+  "model": "sonnet",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh"
@@ -22,6 +111,70 @@
     "claude-md-management@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true
   },
-  "effortLevel": "high",
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": true,
+    "network": {
+      "allowedDomains": [
+        "srv1407177.hstgr.cloud",
+        "github.com",
+        "api.github.com",
+        "raw.githubusercontent.com"
+      ],
+      "allowManagedDomainsOnly": false
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.claude",
+        "~/.cache",
+        "~/.npm",
+        "~/.local/share",
+        "~/.config",
+        "~/.gitconfig",
+        "~/.rm-safely-undo-stack",
+        "~/.rm-safely-undo-stack.tmp",
+        "~/.bun",
+        ".git"
+      ],
+      "denyWrite": [
+        "//bin",
+        "//usr",
+        "//lib",
+        "//lib64",
+        "//opt",
+        "//sbin",
+        "//System",
+        "//Applications",
+        "//etc",
+        "//var",
+        "//root"
+      ],
+      "denyRead": [
+        "~/.ssh",
+        "~/.gnupg",
+        "~/Documents",
+        "~/Desktop",
+        "~/Downloads",
+        "~/Pictures",
+        "~/Music",
+        "~/Movies",
+        "~/Library",
+        "//root",
+        "//etc",
+        "//var",
+        "//System",
+        "//Applications"
+      ],
+      "allowRead": [
+        "~/.ssh/config",
+        "~/.Trash"
+      ]
+    },
+    "excludedCommands": [
+      "git",
+      "/usr/bin/git",
+      "config"
+    ]
+  },
   "skipDangerousModePermissionPrompt": true
 }
