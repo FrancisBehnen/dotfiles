@@ -6,7 +6,7 @@
       "Bash(config add:*)",
       "Bash(config commit:*)",
       "Bash(zsh ./link_preferences.zsh)",
-      "Read(//Users/francisbehnen/support_and_preference_files_to_migrate/$HOME/Library/Application Support/BetterTouchTool/**)",
+      "Read($HOME/support_and_preference_files_to_migrate/$HOME/Library/Application Support/BetterTouchTool/**)",
       "Bash(readlink \"$HOME/Library/Application Support/BetterTouchTool/btt_user_variables.plist\")",
       "Bash(brew bundle:*)",
       "Bash(port installed:*)",
@@ -17,12 +17,12 @@
       "Bash(config check-ignore:*)",
       "Bash(config status:*)",
       "Bash(git:*)",
-      "Bash(/Users/francisbehnen/Documents/Code/everything-claude-code/install.sh typescript:*)",
-      "Bash(source /Users/francisbehnen/.shell_functions)",
+      "Bash($HOME/Documents/Code/everything-claude-code/install.sh typescript:*)",
+      "Bash(source $HOME/.shell_functions)",
       "Bash(claude-sync-rules)",
       "Bash(port echo:*)",
       "Bash(config submodule:*)",
-      "Bash(zsh /Users/francisbehnen/support_and_preference_files_to_migrate/link_preferences.zsh)"
+      "Bash(zsh $HOME/support_and_preference_files_to_migrate/link_preferences.zsh)"
     ]
   },
 

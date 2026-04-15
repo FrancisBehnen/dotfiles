@@ -1,0 +1,332 @@
+#!/bin/bash
+# Bootstrap script for setting up a new macOS machine with these dotfiles.
+# Detects admin vs non-admin and adjusts installation accordingly.
+# Idempotent — safe to re-run at any time.
+#
+# Usage: bash scripts/setup.sh
+
+set -e
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+info()  { echo -e "${GREEN}[setup]${NC} $*"; }
+warn()  { echo -e "${YELLOW}[setup]${NC} $*"; }
+error() { echo -e "${RED}[setup]${NC} $*" >&2; }
+
+has_admin() {
+  # Returns 0 if user can sudo (has admin rights)
+  sudo -n true 2>/dev/null || groups | grep -qw admin
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+# ─── Detect Environment ──────────────────────────────────────────────────────
+
+info "Detecting environment..."
+if has_admin; then
+  info "Admin privileges detected."
+  IS_ADMIN=true
+else
+  warn "No admin privileges. Some installations will be user-local only."
+  IS_ADMIN=false
+fi
+
+# ─── 1. Package Manager (Homebrew) ───────────────────────────────────────────
+
+install_homebrew() {
+  if command_exists brew; then
+    info "Homebrew already installed at $(which brew)."
+    return
+  fi
+
+  info "Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+  # Add Homebrew to PATH for the rest of this script
+  if [[ -f /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -f /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+
+  info "Homebrew installed."
+}
+
+install_homebrew
+
+# ─── 2. Install Packages from Brewfile ───────────────────────────────────────
+
+install_brew_packages() {
+  local brewfile="$HOME/Brewfile"
+  if [[ ! -f "$brewfile" ]]; then
+    warn "No Brewfile found at $brewfile — skipping package installation."
+    return
+  fi
+
+  if $IS_ADMIN; then
+    info "Installing packages from Brewfile..."
+    brew bundle --file="$brewfile" || warn "Some Brewfile items may have failed."
+  else
+    info "Installing Brewfile formulas (non-admin — skipping casks that need admin)..."
+    # Install formulas (these don't need admin)
+    brew bundle --file="$brewfile" --no-lock 2>&1 | while read -r line; do
+      if echo "$line" | grep -q "requires root"; then
+        warn "Skipped (needs admin): $line"
+      else
+        echo "$line"
+      fi
+    done
+    warn "Some casks may require admin. Install them manually or ask an admin:"
+    grep '^cask ' "$brewfile" | sed 's/^cask /  /' || true
+  fi
+}
+
+install_brew_packages
+
+# ─── 3. Oh My Zsh ────────────────────────────────────────────────────────────
+
+install_oh_my_zsh() {
+  if [[ -d "$HOME/.oh-my-zsh" ]]; then
+    info "Oh My Zsh already installed."
+    return
+  fi
+
+  info "Installing Oh My Zsh..."
+  # RUNZSH=no prevents it from switching to zsh immediately
+  # KEEP_ZSHRC=yes prevents it from overwriting our tracked .zshrc
+  RUNZSH=no KEEP_ZSHRC=yes sh -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/oh-my-zsh/master/tools/install.sh)"
+  info "Oh My Zsh installed."
+}
+
+install_oh_my_zsh
+
+# ─── 4. Dotfiles (bare repo) ─────────────────────────────────────────────────
+
+setup_dotfiles() {
+  if [[ -d "$HOME/.dotfiles" ]]; then
+    info "Dotfiles repo already cloned at ~/.dotfiles."
+  else
+    info "Cloning dotfiles bare repo..."
+    git clone --bare --recurse-submodules \
+      https://github.com/FrancisBehnen/dotfiles.git "$HOME/.dotfiles"
+
+    # Define the config alias for this script session
+    config() {
+      /usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME" "$@"
+    }
+
+    info "Checking out dotfiles..."
+    config checkout 2>&1 | head -20 || {
+      warn "Checkout had conflicts. Backing up conflicting files..."
+      mkdir -p "$HOME/.dotfiles-backup"
+      config checkout 2>&1 | grep -E '^\s+' | awk '{print $1}' | while read -r f; do
+        mkdir -p "$HOME/.dotfiles-backup/$(dirname "$f")"
+        mv "$HOME/$f" "$HOME/.dotfiles-backup/$f"
+      done
+      config checkout
+      warn "Pre-existing files backed up to ~/.dotfiles-backup/"
+    }
+
+    config config --local status.showUntrackedFiles no
+    info "Dotfiles checked out."
+  fi
+
+  # Ensure submodules are initialized
+  local config_cmd="/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME"
+  info "Initializing submodules..."
+  $config_cmd submodule update --init --recursive
+}
+
+setup_dotfiles
+
+# ─── 5. Meslo Nerd Font (for Powerlevel10k) ──────────────────────────────────
+
+install_meslo_font() {
+  local font_dir="$HOME/Library/Fonts"
+  local font_base="MesloLGS NF"
+
+  if ls "$font_dir"/${font_base}* &>/dev/null; then
+    info "Meslo Nerd Font already installed."
+    return
+  fi
+
+  info "Installing Meslo Nerd Font for Powerlevel10k..."
+  local base_url="https://github.com/romkatv/powerlevel10k-media/raw/master"
+  mkdir -p "$font_dir"
+  for style in Regular Bold Italic "Bold Italic"; do
+    curl -fsSL -o "$font_dir/${font_base} ${style}.ttf" \
+      "$base_url/${font_base// /%20}%20${style// /%20}.ttf"
+  done
+  info "Meslo Nerd Font installed. Set your terminal font to 'MesloLGS NF'."
+}
+
+install_meslo_font
+
+# ─── 6. Node.js and Bun ──────────────────────────────────────────────────────
+
+install_node() {
+  if command_exists node; then
+    info "Node.js already installed: $(node --version)"
+    return
+  fi
+
+  info "Installing Node.js..."
+  if command_exists brew; then
+    brew install node
+  elif command_exists port && $IS_ADMIN; then
+    sudo port install nodejs22
+  else
+    warn "Could not install Node.js automatically."
+    warn "Install manually: https://nodejs.org/ or use fnm/nvm."
+    return
+  fi
+  info "Node.js installed: $(node --version)"
+}
+
+install_bun() {
+  if command_exists bun; then
+    info "Bun already installed: $(bun --version)"
+    return
+  fi
+
+  info "Installing Bun..."
+  curl -fsSL https://bun.sh/install | bash
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  info "Bun installed: $(bun --version)"
+}
+
+install_node
+install_bun
+
+# ─── 7. tmux Plugin Manager (tpm) ────────────────────────────────────────────
+
+install_tpm() {
+  local tpm_dir="$HOME/.tmux/plugins/tpm"
+  if [[ -d "$tpm_dir" ]]; then
+    info "tmux plugin manager already installed."
+    return
+  fi
+
+  info "Installing tmux plugin manager (tpm)..."
+  git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
+  info "tpm installed. Launch tmux and press prefix + I to install plugins."
+}
+
+install_tpm
+
+# ─── 8. Coding Agent Setup ───────────────────────────────────────────────────
+
+setup_coding_agents() {
+  echo ""
+  info "=== Coding Agent Setup ==="
+  echo ""
+
+  # Claude Code
+  echo "Set up Claude Code? (y/n)"
+  read -r setup_claude
+  if [[ "$setup_claude" =~ ^[Yy]$ ]]; then
+    if command_exists claude; then
+      info "Claude Code already installed."
+    else
+      info "Installing Claude Code..."
+      if command_exists bun; then
+        bun install -g @anthropic-ai/claude-code
+      elif command_exists npm; then
+        npm install -g @anthropic-ai/claude-code
+      else
+        warn "Neither bun nor npm available. Install Claude Code manually."
+      fi
+    fi
+
+    # Install ECC rules
+    local ecc_dir="$HOME/Documents/Code/everything-claude-code"
+    if [[ -d "$ecc_dir" ]]; then
+      info "ECC rules repo already cloned."
+    else
+      info "Cloning everything-claude-code for extended rules..."
+      mkdir -p "$HOME/Documents/Code"
+      git clone https://github.com/affaan-m/everything-claude-code.git "$ecc_dir"
+      git -C "$ecc_dir" remote add upstream \
+        https://github.com/affaan-m/everything-claude-code.git 2>/dev/null || true
+    fi
+
+    if command_exists node; then
+      npm --prefix "$ecc_dir" install
+      "$ecc_dir/install.sh" typescript python golang
+      info "Claude Code rules installed."
+    else
+      warn "Node.js required for ECC rule installation. Run 'claude-sync-rules' later."
+    fi
+  fi
+
+  # GitHub Copilot CLI
+  echo ""
+  echo "Set up GitHub Copilot CLI? (y/n)"
+  read -r setup_copilot
+  if [[ "$setup_copilot" =~ ^[Yy]$ ]]; then
+    if command_exists gh; then
+      if gh extension list | grep -q copilot; then
+        info "GitHub Copilot CLI extension already installed."
+      else
+        info "Installing GitHub Copilot CLI extension..."
+        gh extension install github/gh-copilot
+        info "GitHub Copilot CLI installed. Use: gh copilot suggest, gh copilot explain"
+      fi
+    else
+      warn "GitHub CLI (gh) not installed. Install it first: brew install gh"
+    fi
+  fi
+
+  echo ""
+  info "Agent setup complete."
+}
+
+setup_coding_agents
+
+# ─── 9. Preference Files ─────────────────────────────────────────────────────
+
+link_preferences() {
+  local pref_dir="$HOME/support_and_preference_files_to_migrate"
+  if [[ -f "$pref_dir/link_preferences.zsh" ]]; then
+    echo ""
+    echo "Link application preference files (BetterTouchTool, iTerm2, etc.)? (y/n)"
+    read -r link_prefs
+    if [[ "$link_prefs" =~ ^[Yy]$ ]]; then
+      info "Linking preference files..."
+      cd "$pref_dir" && zsh link_preferences.zsh
+      cd "$HOME"
+      info "Preference files linked."
+    fi
+  fi
+}
+
+link_preferences
+
+# ─── 10. Final Steps ─────────────────────────────────────────────────────────
+
+echo ""
+info "========================================="
+info "  Setup complete!"
+info "========================================="
+echo ""
+info "Remaining manual steps:"
+echo "  1. Set your terminal font to 'MesloLGS NF'"
+echo "  2. Restart your terminal (or run: exec zsh)"
+echo "  3. Run 'p10k configure' to customize your prompt"
+if command_exists tmux; then
+  echo "  4. Launch tmux and press prefix + I to install tmux plugins"
+fi
+echo ""
+if ! $IS_ADMIN; then
+  warn "Non-admin note: Some Homebrew casks were skipped."
+  warn "Ask an admin to run: brew bundle --file=~/Brewfile"
+fi

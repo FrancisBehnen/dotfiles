@@ -85,11 +85,13 @@ ZSH_CUSTOM=$HOME/.oh-my-zsh_custom
 plugins=(git
 	 autoupdate
 	 zsh-autosuggestions
-	 macports
 )
 
+# Conditionally load macports plugin only if port command is available
+(( $+commands[port] )) && plugins+=( macports )
+
 ## Plugin configurations
-# Autoupdate 
+# Autoupdate
 ZSH_CUSTOM_AUTOUPDATE_QUIET=true
 ZSH_CUSTOM_AUTOUPDATE_NUM_WORKERS=8
 
@@ -145,7 +147,7 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
 # bun completions
-[ -s "/Users/francisbehnen/.bun/_bun" ] && source "/Users/francisbehnen/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 
 # Set claude code package manager preference
@@ -155,4 +157,4 @@ export CLAUDE_PACKAGE_MANAGER=bun
 export PATH="$HOME/bin:$PATH"
 
 # rm-safely - Safe rm command
-source "/Users/francisbehnen/.rm-safely" >/dev/null 2>&1
+source "$HOME/.rm-safely" >/dev/null 2>&1
