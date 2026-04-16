@@ -136,6 +136,11 @@ source $ZSH/oh-my-zsh.sh
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
 
+# User-local MacPorts (non-admin install in ~/macports)
+if [[ -d "$HOME/macports/bin" ]]; then
+  export PATH="$HOME/macports/bin:$HOME/macports/sbin:$PATH"
+fi
+
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"

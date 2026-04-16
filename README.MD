@@ -55,7 +55,9 @@ bash ~/scripts/setup.sh
 
 The setup script will:
 - Install Homebrew (works without admin)
+- Offer to install MacPorts from source for non-admin users (into `~/macports`)
 - Install packages from Brewfile (admin) or list what needs manual install (non-admin)
+- Install MacPorts packages from `requested_ports` (if MacPorts is available)
 - Install Oh My Zsh (preserving the tracked `.zshrc`)
 - Initialize submodules (Oh My Zsh plugins, Powerlevel10k)
 - Install Meslo Nerd Font for Powerlevel10k
@@ -88,7 +90,26 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 eval "$(/usr/local/bin/brew shellenv)"
 ```
 
-> **Admin note:** With admin rights, you can also use MacPorts (`sudo port install ...`). The `.zshrc` conditionally loads the `macports` Oh My Zsh plugin if the `port` command is available.
+> **MacPorts** is also supported — with or without admin. The `.zshrc` conditionally loads the `macports` Oh My Zsh plugin if the `port` command is available.
+>
+> - **With admin:** Install MacPorts via the [official installer](https://www.macports.org/install.php), then use `sudo port install ...`
+> - **Without admin:** Build MacPorts from source into `$HOME/macports` (no sudo needed):
+>   ```bash
+>   # Check https://www.macports.org/install.php for the latest version
+>   curl -LO https://distfiles.macports.org/MacPorts/MacPorts-2.12.4.tar.bz2
+>   tar xjf MacPorts-2.12.4.tar.bz2
+>   cd MacPorts-2.12.4
+>   ./configure \
+>       --prefix=$HOME/macports \
+>       --with-applications-dir=$HOME/macports/Applications \
+>       --with-no-root-privileges \
+>       --without-startupitems
+>   make
+>   make install
+>   export PATH=$HOME/macports/bin:$HOME/macports/sbin:$PATH
+>   $HOME/macports/bin/port selfupdate
+>   ```
+>   After this, use `port install <package>` (no sudo) to install software.
 
 #### Step 2: Install Oh My Zsh
 
@@ -170,12 +191,14 @@ Then set your terminal's font to **MesloLGS NF**:
 # From Brewfile (Homebrew)
 brew bundle --file=~/Brewfile
 
-# If using MacPorts (admin only)
-# Re-install requested ports from snapshot:
-# cat ~/requested_ports | xargs sudo port install
+# If using MacPorts — re-install requested ports from snapshot:
+# Admin install (system-wide):
+#   cat ~/requested_ports | xargs sudo port install
+# Non-admin install (user-local ~/macports):
+#   cat ~/requested_ports | xargs port install
 ```
 
-> **Non-admin users:** Homebrew formulas install without admin. Some casks (desktop apps) may require admin rights. Ask an admin to run `brew bundle --file=~/Brewfile` or install those apps manually.
+> **Non-admin users:** Homebrew formulas install without admin. Some casks (desktop apps) may require admin rights. Ask an admin to run `brew bundle --file=~/Brewfile` or install those apps manually. MacPorts packages install without sudo when using the non-admin (`~/macports`) installation.
 
 #### Step 7: Install Node.js and Bun
 
@@ -442,9 +465,11 @@ Then inside tmux, press `prefix + I` to install plugins.
 
 Node.js is required. Install it:
 ```bash
-brew install node    # Homebrew
+brew install node            # Homebrew
 # or
-sudo port install nodejs22   # MacPorts (admin only)
+sudo port install nodejs22   # MacPorts (admin)
+# or
+port install nodejs22        # MacPorts (non-admin ~/macports)
 ```
 
 ### Submodules show as empty directories after clone
@@ -459,7 +484,8 @@ config submodule update --init --recursive
 Most things work without admin. Key differences:
 - **Homebrew formulas** (CLI tools): work without admin
 - **Homebrew casks** (GUI apps): some require admin for `/Applications`
-- **MacPorts**: requires admin (`sudo`)
+- **MacPorts (system-wide `/opt/local`)**: requires admin (`sudo`)
+- **MacPorts (user-local `~/macports`)**: works without admin — build from source with `--prefix=$HOME/macports --with-no-root-privileges` (see [Step 1](#step-1-install-a-package-manager))
 - **Oh My Zsh, Bun, Node (via Homebrew), fonts**: all work without admin
 - **`vintage` script**: requires admin (uses `brew tap`)
 

@@ -61,6 +61,73 @@ install_homebrew() {
 
 install_homebrew
 
+# ─── 1b. Package Manager (MacPorts) ─────────────────────────────────────────
+
+install_macports() {
+  if command_exists port; then
+    info "MacPorts already installed at $(which port)."
+    return
+  fi
+
+  if $IS_ADMIN; then
+    info "MacPorts can be installed via the official installer."
+    info "Download from: https://www.macports.org/install.php"
+    warn "Skipping automatic MacPorts install — use the .pkg installer or build from source."
+    return
+  fi
+
+  # Non-admin: build MacPorts from source into $HOME/macports
+  info "Installing MacPorts from source (non-admin, into ~/macports)..."
+
+  local mp_version="2.12.4"
+  local mp_tarball="MacPorts-${mp_version}.tar.bz2"
+  local mp_url="https://distfiles.macports.org/MacPorts/${mp_tarball}"
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+
+  (
+    cd "$tmp_dir"
+    info "Downloading MacPorts ${mp_version}..."
+    curl -LO "$mp_url"
+    tar xjf "$mp_tarball"
+    cd "MacPorts-${mp_version}"
+
+    info "Configuring MacPorts for non-root install..."
+    ./configure \
+      --prefix="$HOME/macports" \
+      --with-applications-dir="$HOME/macports/Applications" \
+      --with-no-root-privileges \
+      --without-startupitems
+
+    info "Building MacPorts (this may take a few minutes)..."
+    make
+    make install
+  )
+
+  rm -rf "$tmp_dir"
+
+  # Add to PATH for the rest of this script
+  export PATH="$HOME/macports/bin:$HOME/macports/sbin:$PATH"
+
+  info "Updating MacPorts ports tree..."
+  "$HOME/macports/bin/port" selfupdate
+
+  info "MacPorts installed into ~/macports (no admin required)."
+  info "Check https://www.macports.org/install.php for newer versions."
+}
+
+# Offer MacPorts installation for non-admin users who want it
+if ! $IS_ADMIN && ! command_exists port; then
+  echo ""
+  echo "Install MacPorts from source? (non-admin, installs to ~/macports) (y/n)"
+  read -r install_mp
+  if [[ "$install_mp" =~ ^[Yy]$ ]]; then
+    install_macports
+  fi
+elif command_exists port; then
+  info "MacPorts already available at $(which port)."
+fi
+
 # ─── 2. Install Packages from Brewfile ───────────────────────────────────────
 
 install_brew_packages() {
@@ -89,6 +156,30 @@ install_brew_packages() {
 }
 
 install_brew_packages
+
+# ─── 2b. Install Packages from requested_ports (MacPorts) ───────────────────
+
+install_port_packages() {
+  if ! command_exists port; then
+    return
+  fi
+
+  local portsfile="$HOME/requested_ports"
+  if [[ ! -f "$portsfile" ]]; then
+    warn "No requested_ports found at $portsfile — skipping MacPorts package installation."
+    return
+  fi
+
+  info "Installing MacPorts packages from requested_ports..."
+  if $IS_ADMIN; then
+    cat "$portsfile" | xargs sudo port install || warn "Some ports may have failed to install."
+  else
+    # User-local MacPorts (no sudo needed)
+    cat "$portsfile" | xargs port install || warn "Some ports may have failed to install."
+  fi
+}
+
+install_port_packages
 
 # ─── 3. Oh My Zsh ────────────────────────────────────────────────────────────
 
@@ -181,8 +272,12 @@ install_node() {
   info "Installing Node.js..."
   if command_exists brew; then
     brew install node
-  elif command_exists port && $IS_ADMIN; then
-    sudo port install nodejs22
+  elif command_exists port; then
+    if $IS_ADMIN; then
+      sudo port install nodejs22
+    else
+      port install nodejs22
+    fi
   else
     warn "Could not install Node.js automatically."
     warn "Install manually: https://nodejs.org/ or use fnm/nvm."
@@ -329,4 +424,8 @@ echo ""
 if ! $IS_ADMIN; then
   warn "Non-admin note: Some Homebrew casks were skipped."
   warn "Ask an admin to run: brew bundle --file=~/Brewfile"
+  if [[ -d "$HOME/macports" ]]; then
+    info "MacPorts is installed at ~/macports (user-local, no admin needed)."
+    info "Use 'port install <package>' (no sudo) to install additional packages."
+  fi
 fi
