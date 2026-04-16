@@ -156,6 +156,7 @@ config config --local status.showUntrackedFiles no
 
 #### Step 4: Initialize Submodules
 
+This step is required — `--recurse-submodules` does not work with bare clones:
 ```bash
 config submodule update --init --recursive
 ```
