@@ -26,22 +26,19 @@ As an example, in this repository that means that `.dotfiles` is added to the `.
 
 Then you are ready to clone the repository on a new machine
 ```bash
-git clone --bare --recurse-submodules <git-repo-url> $HOME/.dotfiles
+git clone --bare <git-repo-url> $HOME/.dotfiles
 ```
 and to check it out:
 ```bash
 config checkout
 ```
 
-Note the `--recurse-submodules` flag, this is used to clone installations of, per example, oh-my-zsh plugins such as [powerlevel10k](https://github.com/romkatv/powerlevel10k).
-(For an example of submodule definitions in this repository, see [this file](https://github.com/FrancisBehnen/dotfiles/blob/main/.gitmodules) or [this commit](https://github.com/FrancisBehnen/dotfiles/commit/6f4b5010a54d9011265993fbca5c97a4ba22a135)).
-
-If the repository has already been cloned, and you need to update/initialize the submodules, run the following command:
+Then initialize submodules (oh-my-zsh, powerlevel10k, plugins). This step is required — `--recurse-submodules` does not work with bare clones:
 ```bash
 config submodule update --init --recursive
 ```
 
-This will initialize and update the submodules such that your dotfiles repository starts tracking them.
+(For an example of submodule definitions in this repository, see [this file](https://github.com/FrancisBehnen/dotfiles/blob/main/.gitmodules) or [this commit](https://github.com/FrancisBehnen/dotfiles/commit/6f4b5010a54d9011265993fbca5c97a4ba22a135)).
 
 Also, do not forget to again set `showUntrackedFiles` to `no`:
 ```bash
