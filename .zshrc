@@ -156,3 +156,54 @@ export PATH="$HOME/bin:$PATH"
 
 # rm-safely - Safe rm command
 source "$HOME/.rm-safely" >/dev/null 2>&1
+
+# MacPorts (non-root install)
+export PATH="$HOME/macports/bin:$HOME/macports/sbin:$PATH"
+
+# Homebrew $HOME folder install
+eval "$(~/homebrew/bin/brew shellenv)"
+export HOMEBREW_CASK_OPTS="--appdir=~/Applications"
+
+## Coolblue settings (from .zshrc before pulling dotfiles repo)
+
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.docker/bin:$PATH"
+source /Users/francis.behnen/google-cloud-sdk/path.zsh.inc
+source /Users/francis.behnen/google-cloud-sdk/completion.zsh.inc
+
+# ==== Local Airflow settings (Marketing / planet venus) ====
+# Tell Airflow which planet, team folder and GCP project you use
+export PLANET_NAME=venus
+export LOCAL_AIRFLOW_TEAM_FOLDER=webandapp
+export LOCAL_AIRFLOW_GCP_PROJECT=coolblue-webandapp-dev
+
+# SSH key location for GitHub
+export GH_SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
+
+# Start SSH agent if it's not already running
+if [[ -z "$SSH_AUTH_SOCK" ]]; then
+  eval "$(ssh-agent -s)" > /dev/null
+fi
+
+# ---- SSH stuff goes into config; remove if pull/push still works ----
+# Add the SSH key to the agent (if it exists)
+#if [[ -f "$GH_SSH_KEY_PATH" ]]; then
+#  ssh-add -l | grep -q "$(ssh-keygen -lf $GH_SSH_KEY_PATH | awk '{print $2}')" || ssh-add "$GH_SSH_KEY_PATH"
+#else
+#  echo "⚠️  Warning: SSH key '$GH_SSH_KEY_PATH' not found!"
+#fi
+
+# Google Cloud SDK config folder
+export CLOUDSDK_CONFIG="$HOME/.config/gcloud"
+
+# VS Code 'code' command on macOS (nice-to-have)
+export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+
+# opencode
+export PATH=/Users/francis.behnen/.opencode/bin:$PATH
+
+# DBT env variables
+export DBT_TEAM=webandapp
+export DBT_ENV=development
+
+
