@@ -27,6 +27,11 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# ─── Detect user-local package managers (non-admin installs) ─────────────────
+
+[[ -d "$HOME/homebrew/bin" ]] && export PATH="$HOME/homebrew/bin:$HOME/homebrew/sbin:$PATH"
+[[ -d "$HOME/macports/bin" ]] && export PATH="$HOME/macports/bin:$HOME/macports/sbin:$PATH"
+
 # ─── Detect Environment ──────────────────────────────────────────────────────
 
 info "Detecting environment..."
@@ -50,7 +55,9 @@ install_homebrew() {
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
   # Add Homebrew to PATH for the rest of this script
-  if [[ -f /opt/homebrew/bin/brew ]]; then
+  if [[ -f "$HOME/homebrew/bin/brew" ]]; then
+    eval "$($HOME/homebrew/bin/brew shellenv)"
+  elif [[ -f /opt/homebrew/bin/brew ]]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
   elif [[ -f /usr/local/bin/brew ]]; then
     eval "$(/usr/local/bin/brew shellenv)"
