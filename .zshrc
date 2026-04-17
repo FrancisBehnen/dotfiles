@@ -163,3 +163,55 @@ export PATH="$HOME/bin:$PATH"
 
 # rm-safely - Safe rm command
 source "$HOME/.rm-safely" >/dev/null 2>&1
+
+# Homebrew (user-local install in ~/homebrew, or system-wide)
+if [[ -f "$HOME/homebrew/bin/brew" ]]; then
+  eval "$($HOME/homebrew/bin/brew shellenv)"
+  export HOMEBREW_CASK_OPTS="--appdir=~/Applications"
+elif [[ -f /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -f /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+## Coolblue settings
+
+export PATH="$HOME/.docker/bin:$PATH"
+
+# Google Cloud SDK
+if [[ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]]; then
+  source "$HOME/google-cloud-sdk/path.zsh.inc"
+fi
+if [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]]; then
+  source "$HOME/google-cloud-sdk/completion.zsh.inc"
+fi
+
+# ==== Local Airflow settings (Marketing / planet venus) ====
+export PLANET_NAME=venus
+export LOCAL_AIRFLOW_TEAM_FOLDER=webandapp
+export LOCAL_AIRFLOW_GCP_PROJECT=coolblue-webandapp-dev
+
+# SSH key location for GitHub
+export GH_SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
+
+# Start SSH agent if it's not already running
+if [[ -z "$SSH_AUTH_SOCK" ]]; then
+  eval "$(ssh-agent -s)" > /dev/null
+fi
+
+# Google Cloud SDK config folder
+export CLOUDSDK_CONFIG="$HOME/.config/gcloud"
+
+# VS Code 'code' command on macOS (nice-to-have)
+export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+
+# opencode
+if [[ -d "$HOME/.opencode/bin" ]]; then
+  export PATH="$HOME/.opencode/bin:$PATH"
+fi
+
+# DBT env variables
+export DBT_TEAM=webandapp
+export DBT_ENV=development
+
+
