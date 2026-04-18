@@ -339,13 +339,12 @@ setup_coding_agents() {
     if command_exists claude; then
       info "Claude Code already installed."
     else
-      info "Installing Claude Code..."
-      if command_exists bun; then
-        bun install -g @anthropic-ai/claude-code
-      elif command_exists npm; then
-        npm install -g @anthropic-ai/claude-code
-      else
-        warn "Neither bun nor npm available. Install Claude Code manually."
+      info "Installing Claude Code via native installer..."
+      curl -fsSL https://claude.ai/install.sh | sh
+      # Add to PATH for the rest of this script
+      export PATH="$HOME/.claude/bin:$PATH"
+      if ! command_exists claude; then
+        warn "Claude Code installation may have failed. Install manually: https://claude.ai/install"
       fi
     fi
 
@@ -361,12 +360,13 @@ setup_coding_agents() {
         https://github.com/affaan-m/everything-claude-code.git 2>/dev/null || true
     fi
 
-    if command_exists node; then
-      npm --prefix "$ecc_dir" install
+    if command_exists bun; then
+      info "Installing ECC dependencies with bun..."
+      bun install --cwd "$ecc_dir"
       "$ecc_dir/install.sh" typescript python golang
       info "Claude Code rules installed."
     else
-      warn "Node.js required for ECC rule installation. Run 'claude-sync-rules' later."
+      warn "Bun required for ECC rule installation. Run 'claude-sync-rules' later."
     fi
   fi
 
@@ -376,11 +376,12 @@ setup_coding_agents() {
   read -r setup_copilot
   if [[ "$setup_copilot" =~ ^[Yy]$ ]]; then
     if command_exists gh; then
-      if gh extension list | grep -q copilot; then
-        info "GitHub Copilot CLI extension already installed."
+      # gh copilot is built-in since gh 2.70+; only install extension for older versions
+      if gh copilot --help &>/dev/null; then
+        info "GitHub Copilot CLI already available (built-in or extension)."
       else
         info "Installing GitHub Copilot CLI extension..."
-        gh extension install github/gh-copilot
+        gh extension install github/gh-copilot || warn "Failed to install gh-copilot extension."
         info "GitHub Copilot CLI installed. Use: gh copilot suggest, gh copilot explain"
       fi
     else
