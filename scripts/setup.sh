@@ -29,6 +29,29 @@ has_admin() {
   sudo -n true 2>/dev/null || groups | grep -qw admin
 }
 
+start_sudo_keepalive() {
+  if [[ "$IS_ADMIN" != true ]]; then
+    return
+  fi
+
+  info "Refreshing sudo credentials for the unattended phase..."
+  sudo -v
+
+  (
+    while true; do
+      sudo -n true
+      sleep 60
+    done
+  ) &
+  SUDO_KEEPALIVE_PID=$!
+}
+
+stop_sudo_keepalive() {
+  if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+  fi
+}
+
 command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
@@ -452,6 +475,11 @@ read -r answer
 [[ "$answer" =~ ^[Yy]$ ]] && OPT_PREFS=true
 
 # ─── All interactive steps complete ──────────────────────────────────────────
+
+if [[ "$IS_ADMIN" == true ]]; then
+  start_sudo_keepalive
+  trap stop_sudo_keepalive EXIT
+fi
 
 echo ""
 info "========================================="
