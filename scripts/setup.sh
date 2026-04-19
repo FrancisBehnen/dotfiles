@@ -28,7 +28,7 @@ command_exists() {
 }
 
 copilot_cli_exists() {
-  command_exists copilot || (command_exists gh && gh copilot --help >/dev/null 2>&1)
+  command_exists copilot || { command_exists gh && gh copilot --help >/dev/null 2>&1; }
 }
 
 # ─── Detect user-local package managers (non-admin installs) ─────────────────

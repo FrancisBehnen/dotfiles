@@ -459,7 +459,7 @@ Then inside tmux, press `prefix + I` to install plugins.
 
 ### `claude-sync-rules` fails with "bun install failed"
 
-Node.js and Bun are required. Install them:
+Bun is required, and Node.js is needed if you don't already have a compatible JS runtime available. Install them with:
 ```bash
 brew install node            # Homebrew
 curl -fsSL https://bun.sh/install | bash
