@@ -86,9 +86,21 @@ install_macports() {
   fi
 
   if $IS_ADMIN; then
-    info "MacPorts can be installed via the official installer."
+    info "MacPorts requires the official .pkg installer (admin)."
     info "Download from: https://www.macports.org/install.php"
-    warn "Skipping automatic MacPorts install — use the .pkg installer or build from source."
+    echo ""
+    echo "Please download and run the MacPorts installer, then press RETURN to continue (or 's' to skip MacPorts):"
+    open "https://www.macports.org/install.php" 2>/dev/null || true
+    read -r mp_response
+    if [[ "$mp_response" =~ ^[Ss]$ ]]; then
+      warn "Skipping MacPorts — you can install it later from https://www.macports.org/install.php"
+      return
+    fi
+    if ! command_exists port; then
+      warn "MacPorts not detected after install. Check the installer completed successfully."
+    else
+      info "MacPorts available at $(which port)."
+    fi
     return
   fi
 
@@ -132,16 +144,16 @@ install_macports() {
   info "Check https://www.macports.org/install.php for newer versions."
 }
 
-# Offer MacPorts installation for non-admin users who want it
-if ! $IS_ADMIN && ! command_exists port; then
+# Offer MacPorts installation
+if command_exists port; then
+  info "MacPorts already available at $(which port)."
+else
   echo ""
-  echo "Install MacPorts from source? (non-admin, installs to ~/macports) (y/n)"
+  echo "Install MacPorts? (y/n)"
   read -r install_mp
   if [[ "$install_mp" =~ ^[Yy]$ ]]; then
     install_macports
   fi
-elif command_exists port; then
-  info "MacPorts already available at $(which port)."
 fi
 
 # ─── 2. Install Packages from Brewfile ───────────────────────────────────────
