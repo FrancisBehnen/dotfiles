@@ -27,6 +27,10 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+copilot_cli_exists() {
+  command_exists copilot || (command_exists gh && gh copilot --help >/dev/null 2>&1)
+}
+
 # ─── Detect user-local package managers (non-admin installs) ─────────────────
 
 [[ -d "$HOME/homebrew/bin" ]] && export PATH="$HOME/homebrew/bin:$HOME/homebrew/sbin:$PATH"
@@ -375,14 +379,14 @@ setup_coding_agents() {
   echo "Set up GitHub Copilot CLI? (y/n)"
   read -r setup_copilot
   if [[ "$setup_copilot" =~ ^[Yy]$ ]]; then
-    if command_exists copilot; then
+    if copilot_cli_exists; then
       info "Copilot CLI already installed."
     else
       info "Installing Copilot CLI via native installer..."
       curl -fsSL https://gh.io/copilot-install | bash
       # Add to PATH for the rest of this script
       export PATH="$HOME/.local/bin:$PATH"
-      if ! command_exists copilot; then
+      if ! copilot_cli_exists; then
         warn "Copilot CLI installation may have failed. Install manually: https://aka.ms/github-copilot-settings"
       fi
     fi

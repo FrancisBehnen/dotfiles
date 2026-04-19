@@ -254,7 +254,7 @@ The repo tracks Claude Code's portable configuration:
 **Installation:**
 1. Install Claude Code:
    ```bash
-   bun install -g @anthropic-ai/claude-code   # or: npm install -g @anthropic-ai/claude-code
+   curl -fsSL https://claude.ai/install.sh | sh
    ```
 2. Sign in: run `claude` and follow the prompts.
 3. Install extended rules from [everything-claude-code](https://github.com/affaan-m/everything-claude-code):
@@ -262,7 +262,7 @@ The repo tracks Claude Code's portable configuration:
    git clone https://github.com/affaan-m/everything-claude-code.git ~/Documents/Code/everything-claude-code
    cd ~/Documents/Code/everything-claude-code
    git remote add upstream https://github.com/affaan-m/everything-claude-code.git
-   npm install
+   bun install
    ./install.sh typescript python golang
    ```
    The dotfiles checkout already placed `shell.md` (our custom rule) at `~/.claude/rules/common/`; the install script adds the rest without overwriting it.
@@ -283,28 +283,23 @@ claude-sync-rules
 
 ### GitHub Copilot CLI
 
-GitHub Copilot CLI integrates AI assistance directly into your terminal via the `gh` CLI.
+GitHub Copilot CLI integrates AI assistance directly into your terminal.
 
 **Installation:**
 ```bash
-# Install GitHub CLI if needed
-brew install gh
-gh auth login
-
-# Install the Copilot CLI extension
-gh extension install github/gh-copilot
+curl -fsSL https://gh.io/copilot-install | bash
 ```
 
 **Usage:**
 ```bash
 # Get a shell command suggestion
-gh copilot suggest "find large files over 100MB"
+copilot suggest "find large files over 100MB"
 
 # Explain a command
-gh copilot explain "tar -xzf archive.tar.gz -C /tmp"
+copilot explain "tar -xzf archive.tar.gz -C /tmp"
 ```
 
-**Config location:** `~/.config/github-copilot/` — settings are minimal and not worth tracking in dotfiles. The extension auto-configures after `gh auth login`.
+> If you already have the legacy `gh copilot` extension installed, `scripts/setup.sh` treats that as an existing Copilot CLI install.
 
 ### Adding Other Agents
 
@@ -462,11 +457,13 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ```
 Then inside tmux, press `prefix + I` to install plugins.
 
-### `claude-sync-rules` fails with "npm install failed"
+### `claude-sync-rules` fails with "bun install failed"
 
-Node.js is required. Install it:
+Node.js and Bun are required. Install them:
 ```bash
 brew install node            # Homebrew
+curl -fsSL https://bun.sh/install | bash
+
 # or
 sudo port install nodejs22   # MacPorts (admin)
 # or

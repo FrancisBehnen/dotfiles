@@ -36,7 +36,7 @@ support_and_preference_files_to_migrate/  — App preference files + link script
 ## Multi-Agent Support
 
 - **Claude Code:** Config tracked in `.claude/` (settings.json, settings.local.json, statusline.sh)
-- **GitHub Copilot CLI:** Installed as `gh copilot` extension. Config at `~/.config/github-copilot/` (not tracked — auto-configures after `gh auth login`)
+- **GitHub Copilot CLI:** Installed via the native `copilot` CLI installer. `scripts/setup.sh` also accepts an existing legacy `gh copilot` install.
 - **Other agents:** See "Adding Other Agents" in README.MD for the pattern
 
 ## Maintenance Tasks
