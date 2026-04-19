@@ -375,17 +375,16 @@ setup_coding_agents() {
   echo "Set up GitHub Copilot CLI? (y/n)"
   read -r setup_copilot
   if [[ "$setup_copilot" =~ ^[Yy]$ ]]; then
-    if command_exists gh; then
-      # gh copilot is built-in since gh 2.70+; only install extension for older versions
-      if gh copilot --help &>/dev/null; then
-        info "GitHub Copilot CLI already available (built-in or extension)."
-      else
-        info "Installing GitHub Copilot CLI extension..."
-        gh extension install github/gh-copilot || warn "Failed to install gh-copilot extension."
-        info "GitHub Copilot CLI installed. Use: gh copilot suggest, gh copilot explain"
-      fi
+    if command_exists copilot; then
+      info "Copilot CLI already installed."
     else
-      warn "GitHub CLI (gh) not installed. Install it first: brew install gh"
+      info "Installing Copilot CLI via native installer..."
+      curl -fsSL https://gh.io/copilot-install | bash
+      # Add to PATH for the rest of this script
+      export PATH="$HOME/.local/bin:$PATH"
+      if ! command_exists copilot; then
+        warn "Copilot CLI installation may have failed. Install manually: https://aka.ms/github-copilot-settings"
+      fi
     fi
   fi
 
