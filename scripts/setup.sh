@@ -47,6 +47,46 @@ else
   IS_ADMIN=false
 fi
 
+# ─── 0. Xcode Command Line Tools ─────────────────────────────────────────────
+
+if xcode-select -p &>/dev/null; then
+  info "Xcode Command Line Tools already installed at $(xcode-select -p)."
+else
+  warn "Xcode Command Line Tools are not installed."
+  echo ""
+  echo "Install Xcode Command Line Tools now? (y/n)"
+  read -r install_clt
+  if [[ "$install_clt" =~ ^[Yy]$ ]]; then
+    info "Launching Xcode Command Line Tools installer..."
+    xcode-select --install
+    echo ""
+    echo "Press RETURN once the Command Line Tools installation has completed:"
+    read -r
+    if xcode-select -p &>/dev/null; then
+      info "Xcode Command Line Tools installed at $(xcode-select -p)."
+      info "Accepting Xcode license..."
+      if [[ "$IS_ADMIN" == true ]]; then
+        sudo xcodebuild -license accept
+        info "Xcode license accepted."
+      else
+        # Fallback for non-admin: write the agreed version to defaults
+        # Source: https://stackoverflow.com/a/73742086 (jmon12, CC BY-SA 4.0)
+        xcode_version="$(xcodebuild -version 2>/dev/null | awk '/Xcode/{print $2}' | head -1)"
+        if [[ -n "$xcode_version" ]]; then
+          defaults write com.apple.dt.Xcode IDEXcodeVersionForAgreedToGMLicense "$xcode_version"
+          info "Xcode license accepted via defaults (version $xcode_version)."
+        else
+          warn "Could not accept Xcode license automatically. Run: sudo xcodebuild -license accept"
+        fi
+      fi
+    else
+      warn "Xcode Command Line Tools still not detected — some steps may fail."
+    fi
+  else
+    warn "Skipping Xcode Command Line Tools — some steps may fail without them."
+  fi
+fi
+
 # ─── 1. Package Manager (Homebrew) ───────────────────────────────────────────
 
 install_homebrew() {
