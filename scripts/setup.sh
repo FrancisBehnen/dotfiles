@@ -358,6 +358,26 @@ install_copilot_cli() {
   fi
 }
 
+install_agent_skills() {
+  local skillfile="$HOME/Skillfile"
+  if [[ ! -f "$skillfile" ]]; then
+    warn "No Skillfile found at $skillfile — skipping agent skill installation."
+    return
+  fi
+
+  if ! command_exists bunx; then
+    warn "bunx not found — skipping agent skill installation."
+    return
+  fi
+
+  info "Installing agent skills from Skillfile..."
+  grep -v '^\s*#' "$skillfile" | grep -v '^\s*$' | while read -r ref; do
+    info "  Installing skill: $ref"
+    bunx skills add "$ref" || warn "  Failed to install skill: $ref"
+  done
+  info "Agent skills installation complete."
+}
+
 link_preferences() {
   local pref_dir="$HOME/support_and_preference_files_to_migrate"
   if [[ -f "$pref_dir/link_preferences.zsh" ]]; then
@@ -537,19 +557,25 @@ if [[ "$OPT_CLAUDE" == true ]]; then
   install_claude_code
 fi
 
-# ─── 11. GitHub Copilot CLI ──────────────────────────────────────────────────
+# ─── 11. Agent Skills (from Skillfile) ───────────────────────────────────────
+
+if [[ "$OPT_CLAUDE" == true ]]; then
+  install_agent_skills
+fi
+
+# ─── 12. GitHub Copilot CLI ──────────────────────────────────────────────────
 
 if [[ "$OPT_COPILOT" == true ]]; then
   install_copilot_cli
 fi
 
-# ─── 12. Preference Files ────────────────────────────────────────────────────
+# ─── 13. Preference Files ────────────────────────────────────────────────────
 
 if [[ "$OPT_PREFS" == true ]]; then
   link_preferences
 fi
 
-# ─── 13. Done ─────────────────────────────────────────────────────────────────
+# ─── 14. Done ─────────────────────────────────────────────────────────────────
 
 echo ""
 info "========================================="
