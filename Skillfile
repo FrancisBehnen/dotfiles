@@ -1,0 +1,20 @@
+# Skillfile — agent skills installed via `bunx skills add`
+# One install reference per line (name, package, or URL).
+# Lines starting with # are comments, blank lines are ignored.
+#
+# Install all:  skills restore
+# Dump current: skills dump
+#
+# ⚠️  Verify these entries match the exact reference you used to install.
+#     Some skills may need a full package name or URL instead of just the name.
+#     If a single install (e.g. glean-cli) pulled in sub-skills, keep only
+#     the top-level entry here.
+
+defuddle
+find-skills
+glean-cli
+json-canvas
+obsidian-bases
+obsidian-cli
+obsidian-markdown
+skill-creator

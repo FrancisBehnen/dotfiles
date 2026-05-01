@@ -3,6 +3,12 @@
 # Detects admin vs non-admin and adjusts installation accordingly.
 # Idempotent — safe to re-run at any time.
 #
+# The script runs in two phases:
+#   Phase 1 — Interactive: manual installs (Xcode CLT, MacPorts .pkg) and
+#             user preferences are gathered upfront.
+#   Phase 2 — Unattended: everything else installs automatically with no
+#             further input required.
+#
 # Usage: bash scripts/setup.sh
 
 set -e
@@ -21,6 +27,29 @@ error() { echo -e "${RED}[setup]${NC} $*" >&2; }
 has_admin() {
   # Returns 0 if user can sudo (has admin rights)
   sudo -n true 2>/dev/null || groups | grep -qw admin
+}
+
+start_sudo_keepalive() {
+  if [[ "$IS_ADMIN" != true ]]; then
+    return
+  fi
+
+  info "Refreshing sudo credentials for the unattended phase..."
+  sudo -v
+
+  (
+    while true; do
+      sudo -n true
+      sleep 60
+    done
+  ) &
+  SUDO_KEEPALIVE_PID=$!
+}
+
+stop_sudo_keepalive() {
+  if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+  fi
 }
 
 command_exists() {
@@ -47,47 +76,7 @@ else
   IS_ADMIN=false
 fi
 
-# ─── 0. Xcode Command Line Tools ─────────────────────────────────────────────
-
-if xcode-select -p &>/dev/null; then
-  info "Xcode Command Line Tools already installed at $(xcode-select -p)."
-else
-  warn "Xcode Command Line Tools are not installed."
-  echo ""
-  echo "Install Xcode Command Line Tools now? (y/n)"
-  read -r install_clt
-  if [[ "$install_clt" =~ ^[Yy]$ ]]; then
-    info "Launching Xcode Command Line Tools installer..."
-    xcode-select --install
-    echo ""
-    echo "Press RETURN once the Command Line Tools installation has completed:"
-    read -r
-    if xcode-select -p &>/dev/null; then
-      info "Xcode Command Line Tools installed at $(xcode-select -p)."
-      info "Accepting Xcode license..."
-      if [[ "$IS_ADMIN" == true ]]; then
-        sudo xcodebuild -license accept
-        info "Xcode license accepted."
-      else
-        # Fallback for non-admin: write the agreed version to defaults
-        # Source: https://stackoverflow.com/a/73742086 (jmon12, CC BY-SA 4.0)
-        xcode_version="$(xcodebuild -version 2>/dev/null | awk '/Xcode/{print $2}' | head -1)"
-        if [[ -n "$xcode_version" ]]; then
-          defaults write com.apple.dt.Xcode IDEXcodeVersionForAgreedToGMLicense "$xcode_version"
-          info "Xcode license accepted via defaults (version $xcode_version)."
-        else
-          warn "Could not accept Xcode license automatically. Run: sudo xcodebuild -license accept"
-        fi
-      fi
-    else
-      warn "Xcode Command Line Tools still not detected — some steps may fail."
-    fi
-  else
-    warn "Skipping Xcode Command Line Tools — some steps may fail without them."
-  fi
-fi
-
-# ─── 1. Package Manager (Homebrew) ───────────────────────────────────────────
+# ─── Install Functions ────────────────────────────────────────────────────────
 
 install_homebrew() {
   if command_exists brew; then
@@ -97,7 +86,7 @@ install_homebrew() {
 
   if [[ "$IS_ADMIN" == true ]]; then
     info "Installing Homebrew (admin)..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     if [[ -f /opt/homebrew/bin/brew ]]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
     elif [[ -f /usr/local/bin/brew ]]; then
@@ -115,36 +104,13 @@ install_homebrew() {
   info "Homebrew installed."
 }
 
-install_homebrew
-
-# ─── 1b. Package Manager (MacPorts) ─────────────────────────────────────────
-
-install_macports() {
+install_macports_from_source() {
+  # Non-admin: build MacPorts from source into $HOME/macports
   if command_exists port; then
     info "MacPorts already installed at $(which port)."
     return
   fi
 
-  if $IS_ADMIN; then
-    info "MacPorts requires the official .pkg installer (admin)."
-    info "Download from: https://www.macports.org/install.php"
-    echo ""
-    echo "Please download and run the MacPorts installer, then press RETURN to continue (or 's' to skip MacPorts):"
-    open "https://www.macports.org/install.php" 2>/dev/null || true
-    read -r mp_response
-    if [[ "$mp_response" =~ ^[Ss]$ ]]; then
-      warn "Skipping MacPorts — you can install it later from https://www.macports.org/install.php"
-      return
-    fi
-    if ! command_exists port; then
-      warn "MacPorts not detected after install. Check the installer completed successfully."
-    else
-      info "MacPorts available at $(which port)."
-    fi
-    return
-  fi
-
-  # Non-admin: build MacPorts from source into $HOME/macports
   info "Installing MacPorts from source (non-admin, into ~/macports)..."
 
   local mp_version="2.12.4"
@@ -184,20 +150,6 @@ install_macports() {
   info "Check https://www.macports.org/install.php for newer versions."
 }
 
-# Offer MacPorts installation
-if command_exists port; then
-  info "MacPorts already available at $(which port)."
-else
-  echo ""
-  echo "Install MacPorts? (y/n)"
-  read -r install_mp
-  if [[ "$install_mp" =~ ^[Yy]$ ]]; then
-    install_macports
-  fi
-fi
-
-# ─── 2. Install Packages from Brewfile ───────────────────────────────────────
-
 install_brew_packages() {
   local brewfile="$HOME/Brewfile"
   if [[ ! -f "$brewfile" ]]; then
@@ -223,10 +175,6 @@ install_brew_packages() {
   fi
 }
 
-install_brew_packages
-
-# ─── 2b. Install Packages from requested_ports (MacPorts) ───────────────────
-
 install_port_packages() {
   if ! command_exists port; then
     return
@@ -247,10 +195,6 @@ install_port_packages() {
   fi
 }
 
-install_port_packages
-
-# ─── 3. Oh My Zsh ────────────────────────────────────────────────────────────
-
 install_oh_my_zsh() {
   if [[ -d "$HOME/.oh-my-zsh" ]]; then
     info "Oh My Zsh already installed."
@@ -264,10 +208,6 @@ install_oh_my_zsh() {
     "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/oh-my-zsh/master/tools/install.sh)"
   info "Oh My Zsh installed."
 }
-
-install_oh_my_zsh
-
-# ─── 4. Dotfiles (bare repo) ─────────────────────────────────────────────────
 
 setup_dotfiles() {
   if [[ -d "$HOME/.dotfiles" ]]; then
@@ -304,10 +244,6 @@ setup_dotfiles() {
   $config_cmd submodule update --init --recursive
 }
 
-setup_dotfiles
-
-# ─── 5. Meslo Nerd Font (for Powerlevel10k) ──────────────────────────────────
-
 install_meslo_font() {
   local font_dir="$HOME/Library/Fonts"
   local font_base="MesloLGS NF"
@@ -326,10 +262,6 @@ install_meslo_font() {
   done
   info "Meslo Nerd Font installed. Set your terminal font to 'MesloLGS NF'."
 }
-
-install_meslo_font
-
-# ─── 6. Node.js and Bun ──────────────────────────────────────────────────────
 
 install_node() {
   if command_exists node; then
@@ -367,11 +299,6 @@ install_bun() {
   info "Bun installed: $(bun --version)"
 }
 
-install_node
-install_bun
-
-# ─── 7. tmux Plugin Manager (tpm) ────────────────────────────────────────────
-
 install_tpm() {
   local tpm_dir="$HOME/.tmux/plugins/tpm"
   if [[ -d "$tpm_dir" ]]; then
@@ -384,97 +311,271 @@ install_tpm() {
   info "tpm installed. Launch tmux and press prefix + I to install plugins."
 }
 
-install_tpm
-
-# ─── 8. Coding Agent Setup ───────────────────────────────────────────────────
-
-setup_coding_agents() {
-  echo ""
-  info "=== Coding Agent Setup ==="
-  echo ""
-
-  # Claude Code
-  echo "Set up Claude Code? (y/n)"
-  read -r setup_claude
-  if [[ "$setup_claude" =~ ^[Yy]$ ]]; then
-    if command_exists claude; then
-      info "Claude Code already installed."
-    else
-      info "Installing Claude Code via native installer..."
-      curl -fsSL https://claude.ai/install.sh | sh
-      # Add to PATH for the rest of this script
-      export PATH="$HOME/.claude/bin:$PATH"
-      if ! command_exists claude; then
-        warn "Claude Code installation may have failed. Install manually: https://claude.ai/install"
-      fi
-    fi
-
-    # Install ECC rules
-    local ecc_dir="$HOME/Documents/Code/everything-claude-code"
-    if [[ -d "$ecc_dir" ]]; then
-      info "ECC rules repo already cloned."
-    else
-      info "Cloning everything-claude-code for extended rules..."
-      mkdir -p "$HOME/Documents/Code"
-      git clone https://github.com/affaan-m/everything-claude-code.git "$ecc_dir"
-      git -C "$ecc_dir" remote add upstream \
-        https://github.com/affaan-m/everything-claude-code.git 2>/dev/null || true
-    fi
-
-    if command_exists bun; then
-      info "Installing ECC dependencies with bun..."
-      bun install --cwd "$ecc_dir"
-      "$ecc_dir/install.sh" typescript python golang
-      info "Claude Code rules installed."
-    else
-      warn "Bun required for ECC rule installation. Run 'claude-sync-rules' later."
+install_claude_code() {
+  if command_exists claude; then
+    info "Claude Code already installed."
+  else
+    info "Installing Claude Code via native installer..."
+    curl -fsSL https://claude.ai/install.sh | sh
+    export PATH="$HOME/.claude/bin:$PATH"
+    if ! command_exists claude; then
+      warn "Claude Code installation may have failed. Install manually: https://claude.ai/install"
     fi
   fi
 
-  # GitHub Copilot CLI
-  echo ""
-  echo "Set up GitHub Copilot CLI? (y/n)"
-  read -r setup_copilot
-  if [[ "$setup_copilot" =~ ^[Yy]$ ]]; then
-    if copilot_cli_exists; then
-      info "Copilot CLI already installed."
-    else
-      info "Installing Copilot CLI via native installer..."
-      curl -fsSL https://gh.io/copilot-install | bash
-      # Add to PATH for the rest of this script
-      export PATH="$HOME/.local/bin:$PATH"
-      if ! copilot_cli_exists; then
-        warn "Copilot CLI installation may have failed. Install manually: https://aka.ms/github-copilot-settings"
-      fi
-    fi
+  # Install ECC rules
+  local ecc_dir="$HOME/Documents/Code/everything-claude-code"
+  if [[ -d "$ecc_dir" ]]; then
+    info "ECC rules repo already cloned."
+  else
+    info "Cloning everything-claude-code for extended rules..."
+    mkdir -p "$HOME/Documents/Code"
+    git clone https://github.com/affaan-m/everything-claude-code.git "$ecc_dir"
+    git -C "$ecc_dir" remote add upstream \
+      https://github.com/affaan-m/everything-claude-code.git 2>/dev/null || true
   fi
 
-  echo ""
-  info "Agent setup complete."
+  if command_exists bun; then
+    info "Installing ECC dependencies with bun..."
+    bun install --cwd "$ecc_dir"
+    "$ecc_dir/install.sh" typescript python golang
+    info "Claude Code rules installed."
+  else
+    warn "Bun required for ECC rule installation. Run 'claude-sync-rules' later."
+  fi
 }
 
-setup_coding_agents
+install_copilot_cli() {
+  if copilot_cli_exists; then
+    info "Copilot CLI already installed."
+  else
+    info "Installing Copilot CLI via native installer..."
+    curl -fsSL https://gh.io/copilot-install | bash
+    export PATH="$HOME/.local/bin:$PATH"
+    if ! copilot_cli_exists; then
+      warn "Copilot CLI installation may have failed. Install manually: https://aka.ms/github-copilot-settings"
+    fi
+  fi
+}
 
-# ─── 9. Preference Files ─────────────────────────────────────────────────────
+install_agent_skills() {
+  local skillfile="$HOME/Skillfile"
+  if [[ ! -f "$skillfile" ]]; then
+    warn "No Skillfile found at $skillfile — skipping agent skill installation."
+    return
+  fi
+
+  if ! command_exists bunx; then
+    warn "bunx not found — skipping agent skill installation."
+    return
+  fi
+
+  info "Installing agent skills from Skillfile..."
+  grep -v '^\s*#' "$skillfile" | grep -v '^\s*$' | while read -r ref; do
+    info "  Installing skill: $ref"
+    bunx skills add "$ref" || warn "  Failed to install skill: $ref"
+  done
+  info "Agent skills installation complete."
+}
 
 link_preferences() {
   local pref_dir="$HOME/support_and_preference_files_to_migrate"
   if [[ -f "$pref_dir/link_preferences.zsh" ]]; then
-    echo ""
-    echo "Link application preference files (BetterTouchTool, iTerm2, etc.)? (y/n)"
-    read -r link_prefs
-    if [[ "$link_prefs" =~ ^[Yy]$ ]]; then
-      info "Linking preference files..."
-      cd "$pref_dir" && zsh link_preferences.zsh
-      cd "$HOME"
-      info "Preference files linked."
-    fi
+    info "Linking preference files..."
+    cd "$pref_dir" && zsh link_preferences.zsh
+    cd "$HOME"
+    info "Preference files linked."
+  else
+    warn "No link_preferences.zsh found — skipping preference file linking."
   fi
 }
 
-link_preferences
+# ═══════════════════════════════════════════════════════════════════════════════
+#  PHASE 1 — Interactive: manual installs & user preferences
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# ─── 10. Final Steps ─────────────────────────────────────────────────────────
+echo ""
+info "========================================="
+info "  Phase 1: A few questions before we start"
+info "========================================="
+
+# ─── Xcode Command Line Tools ────────────────────────────────────────────────
+# Requires user to wait for the GUI installer and may need sudo for the
+# license agreement.
+
+if xcode-select -p &>/dev/null; then
+  info "Xcode Command Line Tools already installed at $(xcode-select -p)."
+else
+  warn "Xcode Command Line Tools are not installed."
+  echo ""
+  echo "Install Xcode Command Line Tools now? (y/n)"
+  read -r install_clt
+  if [[ "$install_clt" =~ ^[Yy]$ ]]; then
+    info "Launching Xcode Command Line Tools installer..."
+    xcode-select --install
+    echo ""
+    echo "Press RETURN once the Command Line Tools installation has completed:"
+    read -r
+    if xcode-select -p &>/dev/null; then
+      info "Xcode Command Line Tools installed at $(xcode-select -p)."
+      info "Accepting Xcode license..."
+      if [[ "$IS_ADMIN" == true ]]; then
+        sudo xcodebuild -license accept
+        info "Xcode license accepted."
+      else
+        # Fallback for non-admin: write the agreed version to defaults
+        # Source: https://stackoverflow.com/a/73742086 (jmon12, CC BY-SA 4.0)
+        xcode_version="$(xcodebuild -version 2>/dev/null | awk '/Xcode/{print $2}' | head -1)"
+        if [[ -n "$xcode_version" ]]; then
+          defaults write com.apple.dt.Xcode IDEXcodeVersionForAgreedToGMLicense "$xcode_version"
+          info "Xcode license accepted via defaults (version $xcode_version)."
+        else
+          warn "Could not accept Xcode license automatically. Run: sudo xcodebuild -license accept"
+        fi
+      fi
+    else
+      warn "Xcode Command Line Tools still not detected — some steps may fail."
+    fi
+  else
+    warn "Skipping Xcode Command Line Tools — some steps may fail without them."
+  fi
+fi
+
+# ─── MacPorts .pkg (admin only — requires manual download) ───────────────────
+# The admin MacPorts installer is a .pkg that must be downloaded and run
+# manually. Non-admin installs build from source in Phase 2 (no interaction).
+
+OPT_MACPORTS=false
+if command_exists port; then
+  info "MacPorts already available at $(which port)."
+else
+  echo ""
+  echo "Install MacPorts? (y/n)"
+  read -r install_mp
+  if [[ "$install_mp" =~ ^[Yy]$ ]]; then
+    OPT_MACPORTS=true
+    if $IS_ADMIN; then
+      info "MacPorts requires the official .pkg installer (admin)."
+      info "Download from: https://www.macports.org/install.php"
+      echo ""
+      echo "Please download and run the MacPorts installer, then press RETURN to continue (or 's' to skip MacPorts):"
+      open "https://www.macports.org/install.php" 2>/dev/null || true
+      read -r mp_response
+      if [[ "$mp_response" =~ ^[Ss]$ ]]; then
+        warn "Skipping MacPorts — you can install it later from https://www.macports.org/install.php"
+        OPT_MACPORTS=false
+      elif ! command_exists port; then
+        warn "MacPorts not detected after install. Check the installer completed successfully."
+      else
+        info "MacPorts available at $(which port)."
+      fi
+    fi
+  fi
+fi
+
+# ─── Remaining Preferences ───────────────────────────────────────────────────
+
+OPT_CLAUDE=false
+OPT_COPILOT=false
+OPT_PREFS=false
+
+echo ""
+echo "Set up Claude Code? (y/n)"
+read -r answer
+[[ "$answer" =~ ^[Yy]$ ]] && OPT_CLAUDE=true
+
+echo ""
+echo "Set up GitHub Copilot CLI? (y/n)"
+read -r answer
+[[ "$answer" =~ ^[Yy]$ ]] && OPT_COPILOT=true
+
+echo ""
+echo "Link application preference files (BetterTouchTool, iTerm2, etc.)? (y/n)"
+read -r answer
+[[ "$answer" =~ ^[Yy]$ ]] && OPT_PREFS=true
+
+# ─── All interactive steps complete ──────────────────────────────────────────
+
+if [[ "$IS_ADMIN" == true ]]; then
+  start_sudo_keepalive
+  trap stop_sudo_keepalive EXIT
+fi
+
+echo ""
+info "========================================="
+info "  All done — no further input required."
+info "  Grab a coffee while the rest installs."
+info "========================================="
+echo ""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  PHASE 2 — Unattended: everything installs automatically
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─── 1. Homebrew ──────────────────────────────────────────────────────────────
+
+install_homebrew
+
+# ─── 2. MacPorts from source (non-admin) ─────────────────────────────────────
+
+if [[ "$OPT_MACPORTS" == true ]] && ! $IS_ADMIN; then
+  install_macports_from_source
+fi
+
+# ─── 3. Brew packages ────────────────────────────────────────────────────────
+
+install_brew_packages
+
+# ─── 4. MacPorts packages ────────────────────────────────────────────────────
+
+install_port_packages
+
+# ─── 5. Oh My Zsh ────────────────────────────────────────────────────────────
+
+install_oh_my_zsh
+
+# ─── 6. Dotfiles (bare repo) ─────────────────────────────────────────────────
+
+setup_dotfiles
+
+# ─── 7. Meslo Nerd Font (for Powerlevel10k) ──────────────────────────────────
+
+install_meslo_font
+
+# ─── 8. Node.js and Bun ──────────────────────────────────────────────────────
+
+install_node
+install_bun
+
+# ─── 9. tmux Plugin Manager (tpm) ────────────────────────────────────────────
+
+install_tpm
+
+# ─── 10. Claude Code ─────────────────────────────────────────────────────────
+
+if [[ "$OPT_CLAUDE" == true ]]; then
+  install_claude_code
+fi
+
+# ─── 11. Agent Skills (from Skillfile) ───────────────────────────────────────
+
+if [[ "$OPT_CLAUDE" == true ]]; then
+  install_agent_skills
+fi
+
+# ─── 12. GitHub Copilot CLI ──────────────────────────────────────────────────
+
+if [[ "$OPT_COPILOT" == true ]]; then
+  install_copilot_cli
+fi
+
+# ─── 13. Preference Files ────────────────────────────────────────────────────
+
+if [[ "$OPT_PREFS" == true ]]; then
+  link_preferences
+fi
+
+# ─── 14. Done ─────────────────────────────────────────────────────────────────
 
 echo ""
 info "========================================="

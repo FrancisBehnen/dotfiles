@@ -158,6 +158,41 @@ export PATH="$HOME/.local/bin:$PATH"
 # Set claude code package manager preference
 export CLAUDE_PACKAGE_MANAGER=bun
 
+# Wrapper around `bunx skills` that auto-tracks installs in ~/Skillfile
+skills() {
+  local skillfile="$HOME/Skillfile"
+
+  # Custom subcommands (don't pass to bunx)
+  if [[ "$1" == "dump" ]]; then
+    ls "$HOME/.agents/skills/" 2>/dev/null | sort
+    return
+  elif [[ "$1" == "restore" ]]; then
+    if [[ ! -f "$skillfile" ]]; then
+      echo "No Skillfile found at $skillfile" >&2
+      return 1
+    fi
+    grep -v '^\s*#' "$skillfile" | grep -v '^\s*$' | while read -r ref; do
+      echo "Installing skill: $ref"
+      bunx skills add "$ref"
+    done
+    return
+  fi
+
+  bunx skills "$@"
+  local exit_code=$?
+
+  # Track successful installs
+  if [[ $exit_code -eq 0 && "$1" == "add" ]]; then
+    shift
+    for arg in "$@"; do
+      [[ "$arg" == -* ]] && continue
+      grep -qxF "$arg" "$skillfile" 2>/dev/null || echo "$arg" >> "$skillfile"
+    done
+  fi
+
+  return $exit_code
+}
+
 # Set bin folder for claude-remote
 export PATH="$HOME/bin:$PATH"
 
