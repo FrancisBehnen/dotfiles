@@ -10,12 +10,13 @@ REPO_NAME="$(basename "$REPO_ROOT")"
 WORKTREE_BASE="$HOME/Code/worktrees/$REPO_NAME"
 
 usage() {
-  echo "Usage: $(basename "$0") <branch-name> [--delete-branch]"
+  echo "Usage: $(basename "$0") [options] <branch-name>"
   echo ""
   echo "Removes the git worktree for the current repo ($REPO_NAME)."
   echo "Worktree path: $WORKTREE_BASE/<branch-name>"
   echo ""
   echo "Options:"
+  echo "  --force           Force removal even with uncommitted changes"
   echo "  --delete-branch   Also delete the local branch after removal"
   echo ""
   echo "Active worktrees:"
@@ -25,16 +26,20 @@ usage() {
 
 [[ $# -lt 1 ]] && usage
 
-BRANCH="$1"
+BRANCH=""
 DELETE_BRANCH=false
-shift
+FORCE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --delete-branch) DELETE_BRANCH=true; shift ;;
-    *) echo "Unknown option: $1"; usage ;;
+    --force) FORCE=true; shift ;;
+    -*) echo "Unknown option: $1"; usage ;;
+    *) BRANCH="$1"; shift ;;
   esac
 done
+
+[[ -z "$BRANCH" ]] && { echo "❌ No branch name provided."; usage; }
 
 WORKTREE_PATH="$WORKTREE_BASE/$BRANCH"
 
@@ -47,7 +52,11 @@ if [[ ! -d "$WORKTREE_PATH" ]]; then
 fi
 
 echo "🗑️  Removing worktree at: $WORKTREE_PATH"
-git -C "$REPO_ROOT" worktree remove "$WORKTREE_PATH"
+if $FORCE; then
+  git -C "$REPO_ROOT" worktree remove --force "$WORKTREE_PATH"
+else
+  git -C "$REPO_ROOT" worktree remove "$WORKTREE_PATH"
+fi
 
 if $DELETE_BRANCH; then
   echo "🌿 Deleting branch: $BRANCH"
