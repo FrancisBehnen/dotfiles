@@ -1,42 +1,60 @@
-# Dotfiles Repository
+# Dotfiles Repository — Claude Code Instructions
 
-This is a **bare git repository** (`$HOME/.dotfiles`) with the work tree set to `$HOME`.
-The home folder IS the repo — treat every file here as potentially personal/untracked.
+This is `FrancisBehnen/dotfiles` — a bare git repo (`$HOME/.dotfiles`) with work tree at `$HOME`. It uses a `config` alias instead of `git` for all dotfile operations.
 
-## Critical Rules
+## Repo Layout
 
-### Use `config` instead of `git`
-All git operations MUST use the `config` alias:
-```bash
-config status
-config add .zshrc
-config commit -m "..."
-config push
 ```
-The alias is: `/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME`
+.claude/                     — Claude Code config (settings, statusline, permissions)
+.zshrc                       — Main shell config (Oh My Zsh, plugins, PATH, aliases)
+.gitconfig                   — Git user config + credential helpers (dynamic gh path)
+.gitmodules                  — Submodule definitions (Oh My Zsh, p10k, plugins)
+.oh-my-zsh/                  — Oh My Zsh (submodule)
+.oh-my-zsh_custom/           — Custom plugins/themes as top-level submodules
+.p10k.zsh                    — Powerlevel10k config
+.tmux.conf                   — tmux config (tpm plugins)
+.vimrc                       — Vim config
+Brewfile                     — Homebrew packages
+myports / requested_ports    — MacPorts snapshots
+scripts/
+  setup.sh                   — Bootstrap script (admin/non-admin aware, idempotent)
+  claude-mv                  — Move project directories + migrate Claude context
+  claude-sync-rules          — Sync ECC rules from upstream
+  vintage                    — Install pinned Homebrew versions (admin only)
+support_and_preference_files_to_migrate/  — App preference files + link script
+```
 
-### Never add files without explicit approval
-`status.showUntrackedFiles` is set to `no` — only tracked files appear.
-**Never** run `config add .` or `config add -A`. Only add files the user explicitly names.
-The home folder contains thousands of personal files, applications, caches, and secrets.
+## Key Conventions
 
-### Never read untracked files
-Do not read or explore files not tracked by this repo unless the user asks.
-List tracked files with `config ls-tree -r --name-only HEAD`.
+- **Bare repo pattern:** All dotfile operations use `config` alias (`/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME`). Never use plain `git` for dotfile operations on the user's machine.
+- **No hardcoded paths:** Use `$HOME` instead of `/Users/francisbehnen/` everywhere. The `.gitconfig` uses dynamic `gh` detection (`!which gh`) instead of a hardcoded path.
+- **Conditional plugins:** The `macports` Oh My Zsh plugin loads only if `port` is available (`(( $+commands[port] ))`).
+- **Admin vs non-admin:** The `scripts/setup.sh` script detects admin rights and adjusts installation. Homebrew formulas work without admin; some casks require admin. MacPorts works both with admin (system-wide `/opt/local`) and without admin (user-local `$HOME/macports` built from source with `--with-no-root-privileges`).
+- **Submodules:** Custom Oh My Zsh plugins/themes go in `.oh-my-zsh_custom/` (not inside `.oh-my-zsh/`) because git doesn't support submodules inside submodules.
+- **Package manager:** `CLAUDE_PACKAGE_MANAGER=bun` is set in `.zshrc`. Use `bun` for Claude Code package operations.
 
-### Submodules
-Custom oh-my-zsh plugins live in `.oh-my-zsh_custom/` (not inside `.oh-my-zsh/`)
-to avoid nested submodules. Managed via `config submodule`.
+## Multi-Agent Support
 
-### Remotes
-- `origin` = user's fork (`FrancisBehnen/dotfiles`)
-- `upstream` = original repo (`Fastjur/dotfiles`)
+- **Claude Code:** Config tracked in `.claude/` (settings.json, settings.local.json, statusline.sh)
+- **GitHub Copilot CLI:** Installed via the native `copilot` CLI installer. `scripts/setup.sh` also accepts an existing legacy `gh copilot` install.
+- **Other agents:** See "Adding Other Agents" in README.MD for the pattern
 
-### Shell functions
-Custom shell functions go in `.shell_functions`, not `.zshrc`.
-PATH additions go at the bottom of `.zshrc`.
+## Maintenance Tasks
 
-### Package management
-The `vintage` function in `.shell_functions` installs specific older versions
-of Homebrew formulas/casks via the `homebrew/local` tap. These version-pinned
-casks are safe from `brew upgrade`.
+When asked to do periodic maintenance in `~/`:
+
+1. `claude-sync-rules` — pull latest ECC rules
+2. `brew bundle dump --force --file=~/Brewfile` — sync Brewfile
+3. `port installed > ~/myports` — snapshot MacPorts (if available)
+4. `port echo requested | awk '{print $1}' | sort -u > ~/requested_ports` — sync requested ports (if available)
+5. `config submodule update --remote` — update plugins/themes
+6. Check preference symlinks are intact
+7. `config diff` → review, commit, push
+
+## Rules
+
+- Do NOT add hardcoded username paths — always use `$HOME` or `~`
+- Do NOT assume admin rights — check or make operations conditional. MacPorts commands should use `sudo port` only when `$IS_ADMIN` is true; non-admin installs in `$HOME/macports` need no sudo.
+- Do NOT modify `.p10k.zsh` unless explicitly asked (it's auto-generated by `p10k configure`)
+- Keep the `vintage` and BTT preference migration scripts as-is (admin-only tools)
+- The `scripts/setup.sh` must remain idempotent (safe to re-run)

@@ -85,11 +85,13 @@ ZSH_CUSTOM=$HOME/.oh-my-zsh_custom
 plugins=(git
 	 autoupdate
 	 zsh-autosuggestions
-	 macports
 )
 
+# Conditionally load macports plugin only if port command is available
+(( $+commands[port] )) && plugins+=( macports )
+
 ## Plugin configurations
-# Autoupdate 
+# Autoupdate
 ZSH_CUSTOM_AUTOUPDATE_QUIET=true
 ZSH_CUSTOM_AUTOUPDATE_NUM_WORKERS=8
 
@@ -134,6 +136,11 @@ source $ZSH/oh-my-zsh.sh
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
 
+# User-local MacPorts (non-admin install in ~/macports)
+if [[ -d "$HOME/macports/bin" ]]; then
+  export PATH="$HOME/macports/bin:$HOME/macports/sbin:$PATH"
+fi
+
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
@@ -145,7 +152,7 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
 # bun completions
-[ -s "/Users/francisbehnen/.bun/_bun" ] && source "/Users/francisbehnen/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 
 # Set claude code package manager preference
@@ -192,22 +199,29 @@ export PATH="$HOME/bin:$PATH"
 # rm-safely - Safe rm command
 source "$HOME/.rm-safely" >/dev/null 2>&1
 
-# MacPorts (non-root install)
-export PATH="$HOME/macports/bin:$HOME/macports/sbin:$PATH"
+# Homebrew (user-local install in ~/homebrew, or system-wide)
+if [[ -f "$HOME/homebrew/bin/brew" ]]; then
+  eval "$($HOME/homebrew/bin/brew shellenv)"
+  export HOMEBREW_CASK_OPTS="--appdir=~/Applications"
+elif [[ -f /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -f /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
 
-# Homebrew $HOME folder install
-eval "$(~/homebrew/bin/brew shellenv)"
-export HOMEBREW_CASK_OPTS="--appdir=~/Applications"
+## Coolblue settings
 
-## Coolblue settings (from .zshrc before pulling dotfiles repo)
-
-export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.docker/bin:$PATH"
-source /Users/francis.behnen/google-cloud-sdk/path.zsh.inc
-source /Users/francis.behnen/google-cloud-sdk/completion.zsh.inc
+
+# Google Cloud SDK
+if [[ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]]; then
+  source "$HOME/google-cloud-sdk/path.zsh.inc"
+fi
+if [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]]; then
+  source "$HOME/google-cloud-sdk/completion.zsh.inc"
+fi
 
 # ==== Local Airflow settings (Marketing / planet venus) ====
-# Tell Airflow which planet, team folder and GCP project you use
 export PLANET_NAME=venus
 export LOCAL_AIRFLOW_TEAM_FOLDER=webandapp
 export LOCAL_AIRFLOW_GCP_PROJECT=coolblue-webandapp-dev
@@ -220,14 +234,6 @@ if [[ -z "$SSH_AUTH_SOCK" ]]; then
   eval "$(ssh-agent -s)" > /dev/null
 fi
 
-# ---- SSH stuff goes into config; remove if pull/push still works ----
-# Add the SSH key to the agent (if it exists)
-#if [[ -f "$GH_SSH_KEY_PATH" ]]; then
-#  ssh-add -l | grep -q "$(ssh-keygen -lf $GH_SSH_KEY_PATH | awk '{print $2}')" || ssh-add "$GH_SSH_KEY_PATH"
-#else
-#  echo "⚠️  Warning: SSH key '$GH_SSH_KEY_PATH' not found!"
-#fi
-
 # Google Cloud SDK config folder
 export CLOUDSDK_CONFIG="$HOME/.config/gcloud"
 
@@ -235,7 +241,9 @@ export CLOUDSDK_CONFIG="$HOME/.config/gcloud"
 export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
 
 # opencode
-export PATH=/Users/francis.behnen/.opencode/bin:$PATH
+if [[ -d "$HOME/.opencode/bin" ]]; then
+  export PATH="$HOME/.opencode/bin:$PATH"
+fi
 
 # DBT env variables
 export DBT_TEAM=webandapp

@@ -20,12 +20,12 @@ git -C "$ecc_dir" merge upstream/main --ff-only || {
   exit 1
 }
 
-# Install npm dependencies if missing or outdated
+# Install dependencies if missing or outdated
 if [[ ! -d "$ecc_dir/node_modules" ]] || \
-   [[ "$ecc_dir/package-lock.json" -nt "$ecc_dir/node_modules/.package-lock.json" ]]; then
-  echo "Installing npm dependencies..."
-  npm --prefix "$ecc_dir" install || {
-    echo "Error: npm install failed. Is node installed? (sudo port install nodejs22)" >&2
+   [[ "$ecc_dir/package.json" -nt "$ecc_dir/node_modules" ]]; then
+  echo "Installing dependencies with bun..."
+  bun install --cwd "$ecc_dir" || {
+    echo "Error: bun install failed. Is bun installed? (curl -fsSL https://bun.sh/install | bash)" >&2
     exit 1
   }
 fi
