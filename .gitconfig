@@ -18,3 +18,5 @@
 	required = true
 [push]
 	autoSetupRemote = true
+[alias]
+	sync-upstream = "!f() { git fetch upstream main && git rebase --autostash upstream/main && git push -f; }; f"

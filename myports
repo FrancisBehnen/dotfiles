@@ -1,560 +1,181 @@
-autoconf                       @2.72_0 
-automake                       @1.18.1_0 
-awscli_select                  @0.3_1 
-bison                          @3.8.2_2 
-bison-runtime                  @3.8.2_0 
-boehmgc                        @8.2.10_0 
-boehmgc                        @8.2.12_0 
-boost181                       @1.81.0_13+no_single+no_static+python313 
-boost188                       @1.88.0_2+no_single+no_static+python314 
-brotli                         @1.2.0_0 
-bsdmake                        @24_1 
-bzip2                          @1.0.8_0 
-cairo                          @1.17.6_2+quartz+x11 
-cctools                        @949.0.1_3+xcode 
-clang-21                       @21.1.8_0+analyzer 
-clang-21                       @21.1.8_1+analyzer 
-clang_select                   @2.4_0 
-clang_select                   @2.5_0 
-clang_select-17                @2.5_0 
-clang_select-21                @2.5_0 
-cmake                          @3.31.7_0 
-cmake                          @3.31.10_0 
-curl                           @8.13.0_0+brotli+http2+idn+psl+ssl+zstd 
-curl-ca-bundle                 @8.10.1_0 
-curl-ca-bundle                 @8.13.0_0 
-cyrus-sasl2                    @2.1.28_1+kerberos 
-cython_select                  @0.1_2 
-db48                           @4.8.30_5 
-docbook-xml                    @5.0_3 
-docbook-xml-4.1.2              @5.0_1 
-docbook-xml-4.2                @5.0_1 
-docbook-xml-4.3                @5.0_1 
-docbook-xml-4.4                @5.0_1 
-docbook-xml-4.5                @5.0_1 
-docbook-xml-5.0                @5.0_1 
-docbook-xsl-nons               @1.79.2_1 
-docker                         @28.3.3_0 
-docker                         @29.2.1_0 
-docker                         @29.3.0_0 
-docutils_select                @0.2_0 
-expat                          @2.7.3_0 
-expat                          @2.7.4_0 
-flex                           @2.6.4_0 
-fontconfig                     @2.15.0_0 
-fop                            @1.1_1 
-freetype                       @2.13.3_0 
-gawk                           @5.3.2_0 
-gawk                           @5.4.0_0 
-gdbm                           @1.26_0 
-gettext                        @0.22.5_0 
-gettext                        @1.0_0 
-gettext-runtime                @0.22.5_0 
-gettext-runtime                @1.0_0 
-gettext-tools-libs             @0.22.5_0 
-gettext-tools-libs             @1.0_0 
-gh                             @2.85.0_0 
-gh                             @2.88.0_0 
-ghostscript                    @10.06.0_0+x11 
-ghostscript                    @10.07.0_0+x11 
-git                            @2.52.0_0+credential_osxkeychain+diff_highlight+doc+pcre+perl5_34 
-git                            @2.53.0_0+credential_osxkeychain+diff_highlight+doc+pcre+perl5_34 
-glib2                          @2.78.4_2+x11 
-glib2                          @2.78.4_3+x11 
-gmp                            @6.3.0_0 
-gnupg2                         @2.5.16_0+openldap+pinentry_mac 
-gnupg2                         @2.5.17_0+openldap+pinentry_mac 
-gnutls                         @3.7.11_1 
-go                             @1.26.0_0 
-go                             @1.26.1_0 
-go-md2man                      @2.0.7_0 
-go2port                        @20250207_0 
-gobject-introspection          @1.78.1_5 
-gobject-introspection          @1.78.1_6 
-gpgme                          @1.24.3_1 
-gpgme                          @2.0.1_0 
-gpgmepp                        @2.0.0_1 
-graphite2                      @1.3.14_0 
-grep                           @3.12_0 
-groff                          @1.23.0_0 
-gsed                           @4.9_1 
-harfbuzz                       @11.2.1_1 
-harfbuzz-icu                   @11.2.1_1 
-hatchling_select               @0.1_2 
-help2man                       @1.49.3_2+perl5_34 
-hivex                          @1.3.24_0 
-hivex                          @1.3.24_1 
-icu                            @76.1_0 
-iTerm2                         @3.4.21_0 
-jasper                         @4.2.9_0 
-jbig2dec                       @0.20_0 
-jbigkit                        @2.1_0 
-jq                             @1.8.1_0 
-kerberos5                      @1.21.3_0 
-kerberos5                      @1.22.2_0 
-lcms2                          @2.18_0 
-ld64                           @3_6+ld64_xcode 
-ld64-xcode                     @2_6 
-lerc                           @4.0.0_1 
-libarchive                     @3.8.5_0 
-libarchive                     @3.8.5_2 
-libassuan                      @3.0.2_0 
-libb2                          @0.98.1_1 
-libcomerr                      @1.47.1_0 
-libcxx                         @5.0.1_5 
-libdeflate                     @1.25_0 
-libedit                        @20251016-3.1_0 
-libelf                         @0.8.13_4 
-libevent                       @2.1.12_2 
-libfetch                       @9.0.0-RELEASE_3 
-libffi                         @3.4.8_0 
-libgcrypt                      @1.11.2_0 
-libgcrypt                      @1.12.0_0 
-libgcrypt                      @1.12.1_0 
-libgpg-error                   @1.58_0 
-libgpg-error                   @1.59_0 
-libiconv                       @1.17_0 
-libiconv                       @1.18_0 
-libidn                         @1.43_0 
-libidn2                        @2.3.8_0 
-libjpeg-turbo                  @3.1.3_0 
-libksba                        @1.6.7_0 
-libksba                        @1.6.8_0 
-libnetpbm                      @11.10.05_0 
-libomp                         @21.1.7_0 
-libpaper                       @2.2.6_0 
-libpaper-utils                 @2.2.6_0 
-libpixman                      @0.46.0_0 
-libpng                         @1.6.54_0 
-libpng                         @1.6.55_0 
-libpsl                         @0.21.5-20240306_0 
-libtasn1                       @4.21.0_0 
-libtextstyle                   @0.22.5_0 
-libtextstyle                   @1.0_0 
-libtool                        @2.5.4_0 
-libunistring                   @1.4.1_0 
-libunistring                   @1.4.2_0 
-libusb                         @1.0.29_0 
-libusb-compat                  @0.1.8_0 
-libutf8proc                    @2.11.3_0 
-libxml2                        @2.13.9_0 
-libxml2                        @2.15.2_0 
-libxslt                        @1.1.43_0 
-libxslt                        @1.1.45_0 
-libyaml                        @0.2.5_0 
-libzzip                        @0.13.80_0 
-llvm-21                        @21.1.8_0 
-llvm-21                        @21.1.8_1 
-llvm_select                    @2_1 
-llvm_select-17                 @2_1 
-llvm_select-21                 @2_1 
-lmdb                           @0.9.33_0 
-lmdb                           @0.9.35_0 
-lz4                            @1.10.0_0 
-lzip                           @1.25_0 
-lzma                           @25.01_0 
-lzma                           @26.00_0 
-lzo2                           @2.10_0 
-m4                             @1.4.20_0 
-m4                             @1.4.21_0 
-mandoc                         @1.14.6_0 
-meson                          @1.10.1_0 
-meson                          @1.10.1_2 
-meson                          @1.10.2_0 
-mpdecimal                      @4.0.1_0 
-mpfr                           @4.2.2_0 
-mutagen                        @0.18.1_0 
-nasm                           @3.01_0 
-ncurses                        @6.6_0 
-netpbm                         @11.10.05_1+x11 
-nettle                         @3.10_0 
-nettle                         @3.10.2_0 
-nghttp2                        @1.68.0_0 
-nghttp2                        @1.68.1_0 
-ninja                          @1.13.2_1 
-nodejs22                       @22.21.1_0 
-nodejs22                       @22.22.0_0 
-nodejs22                       @22.22.1_0 
-npm10                          @10.8.2_0 
-npm10                          @10.9.3_0 
-npth                           @1.8_0 
-nspr                           @4.38.2_0 
-nss                            @3.120_0 
-nss                            @3.120.1_0 
-nss                            @3.121_0 
-oniguruma6                     @6.9.10_0 
-openjpeg                       @2.5.4_0 
-openldap                       @2.6.10_0 
-openldap                       @2.6.13_0 
-openssl                        @3_28 
-openssl                        @3_29 
-openssl3                       @3.6.0_0 
-openssl3                       @3.6.1_0 
-p5.34-authen-sasl              @2.170.0_0 
-p5.34-authen-sasl              @2.190.0_0 
-p5.34-authen-sasl              @2.200.0_0 
-p5.34-canary-stability         @2013_0 
-p5.34-capture-tiny             @0.500.0_0 
-p5.34-cgi                      @4.660.0_0 
-p5.34-cgi                      @4.710.0_0 
-p5.34-clone                    @0.470.0_0 
-p5.34-clone                    @0.480.0_0 
-p5.34-common-sense             @3.750.0_0 
-p5.34-compress-raw-bzip2       @2.214.0_0 
-p5.34-compress-raw-bzip2       @2.217.0_0 
-p5.34-compress-raw-bzip2       @2.218.0_0 
-p5.34-compress-raw-zlib        @2.214.0_0 
-p5.34-compress-raw-zlib        @2.218.0_0 
-p5.34-compress-raw-zlib        @2.222.0_0 
-p5.34-config-autoconf          @0.320.0_0 
-p5.34-cpan-meta                @2.150.12_0 
-p5.34-cpan-meta                @2.150.13_0 
-p5.34-cpan-meta-check          @0.18.0_0 
-p5.34-cpan-meta-requirements   @2.143.0_0 
-p5.34-cpan-meta-requirements   @2.145.0_0 
-p5.34-cpan-meta-yaml           @0.20.0_0 
-p5.34-cpanel-json-xs           @4.400.0_0 
-p5.34-crypt-urandom            @0.540.0_0 
-p5.34-crypt-urandom            @0.550.0_0 
-p5.34-data-dumper              @2.183.0_0 
-p5.34-data-optlist             @0.114.0_0 
-p5.34-devel-hide               @0.1.600_0 
-p5.34-devel-symdump            @2.180.0_0 
-p5.34-digest-hmac              @1.40.0_0 
-p5.34-digest-hmac              @1.50.0_0 
-p5.34-digest-sha1              @2.130.0_4 
-p5.34-encode                   @3.210.0_0 
-p5.34-encode-din66003          @0.50.0_0 
-p5.34-encode-eucjpascii        @0.30.0_1 
-p5.34-encode-hanextra          @0.230.0_6 
-p5.34-encode-iso2022           @0.40.0_0 
-p5.34-encode-jisx0213          @0.40.0_0 
-p5.34-encode-locale            @1.50.0_0 
-p5.34-error                    @0.170.290_0 
-p5.34-error                    @0.170.300_0 
-p5.34-extutils-cbuilder        @0.280.236_0 
-p5.34-file-slurper             @0.14.0_0 
-p5.34-gssapi                   @0.280.0_3 
-p5.34-html-parser              @3.830.0_0 
-p5.34-html-tagset              @3.240.0_0 
-p5.34-http-date                @6.60.0_0 
-p5.34-http-message             @6.460.0_0 
-p5.34-http-message             @7.0.0_0 
-p5.34-http-message             @7.10.0_0 
-p5.34-io-compress              @2.213.0_0 
-p5.34-io-compress              @2.214.0_0 
-p5.34-io-compress              @2.217.0_0 
-p5.34-io-compress              @2.219.0_0 
-p5.34-io-html                  @1.4.0_0 
-p5.34-io-socket-ssl            @2.89.0_0 
-p5.34-io-socket-ssl            @2.95.0_0 
-p5.34-io-socket-ssl            @2.98.0_0 
-p5.34-ipc-cmd                  @1.40.0_0 
-p5.34-json                     @4.100.0_0 
-p5.34-json-maybexs             @1.4.8_0 
-p5.34-json-pp                  @4.160.0_0 
-p5.34-json-xs                  @4.40.0_0 
-p5.34-locale-gettext           @1.70.0_1 
-p5.34-locale-maketext-simple   @0.210.0_3 
-p5.34-lwp-mediatypes           @6.40.0_0 
-p5.34-mime-base32              @1.303.0_0 
-p5.34-mime-base64              @3.160.0_0 
-p5.34-mime-charset             @1.013.1_0 
-p5.34-mixin-linewise           @0.111.0_0 
-p5.34-module-load              @0.360.0_0 
-p5.34-module-load-conditional  @0.740.0_0 
-p5.34-module-metadata          @1.0.38_0 
-p5.34-net-smtp-ssl             @1.40.0_0 
-p5.34-net-ssleay               @1.940.0_4 
-p5.34-params-check             @0.380.0_1 
-p5.34-params-util              @1.102.0_0 
-p5.34-perlio-utf8_strict       @0.10.0_0 
-p5.34-pod-coverage             @0.230.0_2 
-p5.34-pod-coverage-trustpod    @0.100.6_0 
-p5.34-pod-escapes              @1.70.0_0 
-p5.34-pod-eventual             @0.94.3_0 
-p5.34-pod-parser               @1.670.0_0 
-p5.34-pod-simple               @3.470.0_0 
-p5.34-pod2-base                @0.43.0_0 
-p5.34-podlators                @6.0.2_0 
-p5.34-regexp-ipv6              @0.30.0_0 
-p5.34-scalar-list-utils        @1.700.0_0 
-p5.34-sub-exporter             @0.991.0_0 
-p5.34-sub-install              @0.929.0_0 
-p5.34-sub-uplevel              @0.280.0_0 
-p5.34-term-readkey             @2.380.0_0 
-p5.34-term-size-any            @0.2.0_0 
-p5.34-term-size-perl           @0.31.0_0 
-p5.34-term-table               @0.28.0_0 
-p5.34-test-deep                @1.205.0_0 
-p5.34-test-exception           @0.430.0_0 
-p5.34-test-leaktrace           @0.170.0_0 
-p5.34-test-needs               @0.2.10_0 
-p5.34-test-pod                 @1.520.0_0 
-p5.34-test-pod-coverage        @1.100.0_1 
-p5.34-test-simple              @1.302.219_0 
-p5.34-test-warnings            @0.38.0_0 
-p5.34-text-parsewords          @3.310.0_0 
-p5.34-time-hires               @1.976.400_0 
-p5.34-time-local               @1.350.0_0 
-p5.34-time-piece               @1.410.0_0 
-p5.34-timedate                 @2.330.0_0 
-p5.34-timedate                 @2.340.0_0 
-p5.34-types-serialiser         @1.10.0_0 
-p5.34-unicode-linebreak        @2019.1.0_1 
-p5.34-uri                      @5.290.0_0 
-p5.34-uri                      @5.300.0_0 
-p5.34-uri                      @5.310.0_0 
-p5.34-uri                      @5.340.0_0 
-p5.34-version                  @0.993.300_0 
-p5.34-xsloader                 @0.240.0_0 
-p7zip                          @16.02_5 
-p11-kit                        @0.26.1_0 
-p11-kit                        @0.26.2_0 
-pandoc                         @3.8_0 
-pcre2                          @10.47_0 
-perl5                          @5.34.3_0+perl5_34 
-perl5.34                       @5.34.3_1 
-pinentry-mac                   @1.3.1.1_0 
-pip_select                     @0.1_3 
-pkgconfig                      @0.29.2_0 
-pnpm                           @10.28.0_0 
-pnpm                           @10.29.3_0 
-pnpm                           @10.30.3_0 
-poppler                        @24.04.0_3+boost 
-poppler                        @26.01.0_0+boost 
-poppler-data                   @0.4.12_0 
-popt                           @1.19_0 
-potrace                        @1.16_0 
-psutils                        @p17_1 
-pth                            @2.0.7_1 
-py-awscli2                     @2.33.22_0 
-py-bootstrap-modules           @2025-10-11_0 
-py311-build                    @1.4.0_0 
-py311-flit_core                @3.12.0_0 
-py311-installer                @0.7.0_0 
-py311-packaging                @26.0_0 
-py311-pip                      @24.2_0 
-py311-pip                      @25.3_0 
-py311-pip                      @26.0.1_0 
-py311-pyproject_hooks          @1.2.0_0 
-py311-setuptools               @75.1.0_0 
-py311-setuptools               @75.2.0_0 
-py311-setuptools               @80.9.0_0 
-py311-setuptools               @80.10.2_0 
-py312-alabaster                @0.7.16_0 
-py312-alabaster                @1.0.0_0 
-py312-babel                    @2.15.0_0 
-py312-babel                    @2.17.0_0 
-py312-certifi                  @2024.08.30_0 
-py312-certifi                  @2025.11.12_0 
-py312-charset-normalizer       @3.4.0_0 
-py312-charset-normalizer       @3.4.4_0 
-py312-distlib                  @0.3.9_0 
-py312-distlib                  @0.4.0_0 
-py312-docutils                 @0.21.2_0 
-py312-docutils                 @0.22.3_0 
-py312-docutils                 @0.22.4_0 
-py312-idna                     @3.10_0 
-py312-idna                     @3.11_0 
-py312-imagesize                @1.4.1_0 
-py312-jinja2                   @3.1.4_0 
-py312-jinja2                   @3.1.6_0 
-py312-mako                     @1.3.5_0 
-py312-mako                     @1.3.6_0 
-py312-mako                     @1.3.10_0 
-py312-markdown                 @3.6_0 
-py312-markdown                 @3.7_0 
-py312-markdown                 @3.8.2_0 
-py312-markdown                 @3.10_0 
-py312-packaging                @24.1_0 
-py312-packaging                @24.2_0 
-py312-packaging                @25.0_0 
-py312-pygments                 @2.18.0_0 
-py312-pygments                 @2.19.2_0 
-py312-requests                 @2.32.3_0 
-py312-requests                 @2.32.5_0 
-py312-roman                    @4.1_0 
-py312-roman                    @5.1_0 
-py312-roman_numerals_py        @3.1.0_0 
-py312-roman_numerals_py        @4.1.0_0 
-py312-setuptools               @75.2.0_0 
-py312-setuptools               @75.6.0_0 
-py312-setuptools               @80.9.0_0 
-py312-snowballstemmer          @2.2.0_0 
-py312-snowballstemmer          @3.0.1_0 
-py312-sphinx                   @8.1.3_0 
-py312-sphinx                   @9.0.0_0 
-py312-sphinx                   @9.1.0_0 
-py312-sphinx_rtd_theme         @2.0.0_0 
-py312-sphinx_rtd_theme         @3.0.2_0 
-py312-sphinxcontrib-applehelp  @1.0.8_0 
-py312-sphinxcontrib-applehelp  @2.0.0_0 
-py312-sphinxcontrib-devhelp    @1.0.6_0 
-py312-sphinxcontrib-devhelp    @2.0.0_0 
-py312-sphinxcontrib-htmlhelp   @2.0.5_0 
-py312-sphinxcontrib-htmlhelp   @2.1.0_0 
-py312-sphinxcontrib-jquery     @4.1_0 
-py312-sphinxcontrib-jsmath     @1.0.1_1 
-py312-sphinxcontrib-qthelp     @1.0.7_0 
-py312-sphinxcontrib-qthelp     @2.0.0_0 
-py312-sphinxcontrib-serializinghtml @1.1.10_0 
-py312-sphinxcontrib-serializinghtml @2.0.0_0 
-py312-urllib3                  @2.2.3_0 
-py312-urllib3                  @2.5.0_0 
-py312-urllib3                  @2.6.2_0 
-py313-awscli2                  @2.33.22_0 
-py313-awscrt                   @0.31.1_0 
-py313-build                    @1.4.0_0 
-py313-calver                   @2025.10.20_0 
-py313-certifi                  @2026.2.25_0 
-py313-colorama                 @0.4.6_0 
-py313-cython                   @3.2.4_0 
-py313-dateutil                 @2.9.0.post0_0 
-py313-distro                   @1.9.0_0 
-py313-docutils                 @0.22.4_0 
-py313-editables                @0.5_0 
-py313-flit_core                @3.12.0_0 
-py313-hatchling                @1.28.0_0 
-py313-hatchling                @1.29.0_0 
-py313-installer                @0.7.0_0 
-py313-jmespath                 @1.1.0_0 
-py313-mako                     @1.3.10_0 
-py313-markdown                 @3.8.2_0 
-py313-markdown                 @3.10_0 
-py313-markdown                 @3.10.2_0 
-py313-markupsafe               @3.0.3_0 
-py313-packaging                @25.0_0 
-py313-packaging                @26.0_0 
-py313-pathspec                 @0.12.1_0 
-py313-pathspec                 @1.0.4_0 
-py313-pluggy                   @1.6.0_0 
-py313-prompt_toolkit           @3.0.52_0 
-py313-pygments                 @2.19.2_0 
-py313-pyproject_hooks          @1.2.0_0 
-py313-roman                    @5.1_0 
-py313-ruamel-yaml              @0.19.1_0 
-py313-ruamel-yaml-clib         @0.2.15_0 
-py313-setuptools               @80.9.0_0 
-py313-setuptools               @80.10.2_0 
-py313-setuptools_scm           @9.2.2_0 
-py313-six                      @1.17.0_0 
-py313-trove-classifiers        @2026.1.14.14_0 
-py313-tz                       @2026.1.post1_0 
-py313-urllib3                  @2.6.3_0 
-py313-wcwidth                  @0.6.0_0 
-py313-wheel                    @0.46.2_0 
-py313-wheel                    @0.46.3_0 
-py313-yaml                     @6.0.3_0 
-py314-build                    @1.4.0_0 
-py314-cython                   @3.2.4_0 
-py314-flit_core                @3.12.0_0 
-py314-installer                @0.7.0_0 
-py314-mako                     @1.3.10_0 
-py314-markdown                 @3.10_0 
-py314-markdown                 @3.10.2_0 
-py314-markupsafe               @3.0.3_0 
-py314-meson                    @1.10.1_0 
-py314-meson                    @1.10.1_2 
-py314-meson                    @1.10.2_0 
-py314-packaging                @25.0_0 
-py314-packaging                @26.0_0 
-py314-pyproject_hooks          @1.2.0_0 
-py314-setuptools               @80.9.0_0 
-py314-setuptools               @80.10.2_0 
-py314-wheel                    @0.46.2_0 
-py314-wheel                    @0.46.3_0 
-pygments_select                @0.1_1 
-python3_select                 @0.1_0 
-python3_select-311             @0.1_1 
-python3_select-312             @0.1_1 
-python3_select-313             @0.1_1 
-python3_select-314             @0.1_1 
-python311                      @3.11.14_0+lto+optimizations 
-python311                      @3.11.15_0+lto+optimizations 
-python313                      @3.13.11_0+lto+optimizations 
-python313                      @3.13.12_0+lto+optimizations 
-python314                      @3.14.2_0+lto+optimizations 
-python314                      @3.14.3_0+lto+optimizations 
-python_select                  @0.3_10 
-python_select-311              @0.3_1 
-python_select-312              @0.3_1 
-python_select-313              @0.3_1 
-python_select-314              @0.3_1 
-re2c                           @4.3_0 
-readline                       @8.2.013_0 
-readline                       @8.3.003_0 
-rsync                          @3.4.1_0 
-sphinx_select                  @0.1_1 
-spice-protocol                 @0.14.3_0 
-spice-protocol                 @0.14.5_0 
-sqlite3                        @3.51.2_0 
-sqlite3                        @3.51.3_0 
-tcp_wrappers                   @20_5 
-texinfo                        @7.2_0+perl5_34 
-texinfo                        @7.3_0+perl5_34 
-texlive-basic                  @74523_0+doc 
-texlive-basic                  @78218_0+doc 
-texlive-bin                    @2025.74524_1+x11 
-texlive-bin                    @2026.78235_0+x11 
-texlive-common                 @2025_0 
-texlive-common                 @2026_0 
-texlive-fonts-extra            @74512_0+doc 
-texlive-fonts-extra            @78172_0+doc 
-texlive-fonts-recommended      @68624_1+doc 
-texlive-fonts-recommended      @78101_0+doc 
-texlive-latex                  @74241_0+doc 
-texlive-latex                  @78101_0+doc 
-texlive-latex-extra            @74512_0+doc 
-texlive-latex-extra            @78229_0+doc 
-texlive-latex-recommended      @74487_0+doc 
-texlive-latex-recommended      @78228_0+doc 
-texlive-pictures               @74487_0+doc 
-texlive-pictures               @78219_0+doc 
-texlive-plain-generic          @74472_0+doc 
-texlive-plain-generic          @78219_0+doc 
-texlive-xetex                  @74520_0+doc 
-texlive-xetex                  @77987_0+doc 
-tiff                           @4.7.1_0 
-tmux                           @3.6a_0+sixel 
-tmux-pasteboard                @2.9_0 
-uchardet                       @0.0.8_0 
-urw-fonts                      @1.0.7pre44_0 
-util-linux                     @2.41.2_0 
-util-linux                     @2.41.3_0 
-uv                             @0.10.2_0 
-vim                            @9.1.1887_0+huge+python311 
-w3m                            @0.5.3.20230121_0 
-xar                            @1.8.0.498_0 
-xar                            @1.8.0.501_1 
-xmlcatmgr                      @2.2_1 
-xmlto                          @0.0.29_0 
-xmlto                          @0.0.29_2 
-xorg-libice                    @1.1.2_0 
-xorg-libpthread-stubs          @0.5_0 
-xorg-libsm                     @1.2.6_0 
-xorg-libX11                    @1.8.12_0 
-xorg-libXau                    @1.0.12_0 
-xorg-libXaw                    @1.0.16_1 
-xorg-libxcb                    @1.17.0_0+python314 
-xorg-libXdmcp                  @1.1.5_0 
-xorg-libXext                   @1.3.6_0 
-xorg-libXfixes                 @6.0.2_0 
-xorg-libXi                     @1.8.2_0 
-xorg-libXmu                    @1.2.1_0 
-xorg-libXp                     @1.0.4_0 
-xorg-libXt                     @1.3.1_0+docs 
-xorg-util-macros               @1.20.2_0 
-xorg-xcb-proto                 @1.17.0_0+python312 
-xorg-xcb-proto                 @1.17.0_0+python314 
-xorg-xcb-util                  @0.4.1_0 
-xorg-xorgproto                 @2024.1_0 
-xorg-xtrans                    @1.5.2_0 
-xpm                            @3.5.17_0 
-xrender                        @0.9.12_0 
-xxhashlib                      @0.8.3_3 
-xz                             @5.8.1_0 
-xz                             @5.8.2_0 
-zlib                           @1.3.1_0 
-zlib                           @1.3.2_0 
-zstd                           @1.5.7_0 
+The following ports are currently installed:
+  autoconf @2.73_0 (active)
+  automake @1.18.1_0 (active)
+  awscli_select @0.3_1 (active)
+  bison @3.8.2_2 (active)
+  bison-runtime @3.8.2_0 (active)
+  boehmgc @8.2.12_0 (active)
+  boost181 @1.81.0_15+no_single+no_static+python314 (active)
+  boost188 @1.88.0_3+no_single+no_static+python314 (active)
+  brotli @1.2.0_0 (active)
+  bsdmake @24_1 (active)
+  bzip2 @1.0.8_0 (active)
+  cairo @1.18.4_0+quartz+x11 (active)
+  cargo @0.95.0_1 (active)
+  cctools @949.0.1_3+xcode (active)
+  clang-21 @21.1.8_1+analyzer (active)
+  clang_select @2.5_0 (active)
+  clang_select-17 @2.5_0 (active)
+  clang_select-21 @2.5_0 (active)
+  cmake @3.31.11_0 (active)
+  cmake-bootstrap @3.9.6_0 (active)
+  curl @8.19.0_0+brotli+http2+idn+psl+ssl+zstd (active)
+  curl-ca-bundle @8.19.0_0 (active)
+  cyrus-sasl2 @2.1.28_1+kerberos (active)
+  cython_select @0.1_2 (active)
+  db48 @4.8.30_5 (active)
+  docbook-xml @5.0_3 (active)
+  docbook-xml-4.1.2 @5.0_1 (active)
+  docbook-xml-4.2 @5.0_1 (active)
+  docbook-xml-4.3 @5.0_1 (active)
+  docbook-xml-4.4 @5.0_1 (active)
+  docbook-xml-4.5 @5.0_1 (active)
+  docbook-xml-5.0 @5.0_1 (active)
+  docbook-xsl-nons @1.79.2_1 (active)
+  docker @29.4.0_0 (active)
+  docutils_select @0.2_0 (active)
+  expat @2.7.4_0 (active)
+  flex @2.6.4_0 (active)
+  fontconfig @2.17.1_0 (active)
+  fop @1.1_1 (active)
+  freetype @2.14.3_0 (active)
+  gawk @5.4.0_0 (active)
+  gdbm @1.26_0 (active)
+  gettext @1.0_0 (active)
+  gettext-runtime @1.0_0 (active)
+  gettext-tools-libs @1.0_0 (active)
+  gh @2.89.0_0 (active)
+  glib2 @2.78.4_3+x11 (active)
+  go @1.26.2_0 (active)
+  go-md2man @2.0.7_0 (active)
+  gperf @3.3_0 (active)
+  hatchling_select @0.1_2 (active)
+  help2man @1.49.3_2+perl5_34 (active)
+  icu @78.3_1 (active)
+  jbig2dec @0.20_0 (active)
+  jbigkit @2.1_0 (active)
+  kerberos5 @1.22.2_0 (active)
+  lcms2 @2.18_0 (active)
+  ld64 @3_6+ld64_xcode (active)
+  ld64-xcode @2_6 (active)
+  lerc @4.1.0_0 (active)
+  libarchive @3.8.7_0 (active)
+  libb2 @0.98.1_1 (active)
+  libcomerr @1.47.1_0 (active)
+  libcxx @5.0.1_5 (active)
+  libdeflate @1.25_0 (active)
+  libedit @20251016-3.1_0 (active)
+  libelf @0.8.13_4 (active)
+  libevent @2.1.12_2 (active)
+  libffi @3.4.8_0 (active)
+  libgit2 @1.9.0_1+threadsafe (active)
+  libiconv @1.18_0 (active)
+  libidn @1.43_0 (active)
+  libidn2 @2.3.8_0 (active)
+  libjpeg-turbo @3.1.4.1_0 (active)
+  libomp @21.1.7_0 (active)
+  libpaper @2.2.7_0 (active)
+  libpaper-utils @2.2.7_0 (active)
+  libpixman @0.46.0_0 (active)
+  libpng @1.6.57_0 (active)
+  libpsl @0.21.5-20240306_0 (active)
+  libssh2 @1.11.1_0 (active)
+  libtextstyle @1.0_0 (active)
+  libtool @2.5.4_0 (active)
+  libunistring @1.4.2_0 (active)
+  libutf8proc @2.11.3_0 (active)
+  libxml2 @2.15.2_1 (active)
+  libxslt @1.1.45_0 (active)
+  libyaml @0.2.5_0 (active)
+  llvm-21 @21.1.8_1 (active)
+  llvm_select @2_1 (active)
+  llvm_select-21 @2_1 (active)
+  lmdb @0.9.35_0 (active)
+  lz4 @1.10.0_0 (active)
+  lzip @1.26_0 (active)
+  lzma @26.00_0 (active)
+  lzo2 @2.10_0 (active)
+  m4 @1.4.21_0 (active)
+  meson @1.11.0_0 (active)
+  mpdecimal @4.0.1_0 (active)
+  ncurses @6.6_0 (active)
+  nghttp2 @1.68.1_0 (active)
+  ninja @1.13.2_1 (active)
+  openjpeg @2.5.4_0 (active)
+  openssl @3_30 (active)
+  openssl3 @3.6.2_0 (active)
+  p5.34-locale-gettext @1.70.0_1 (active)
+  p7zip @16.02_5 (active)
+  pcre2 @10.47_0 (active)
+  perl5 @5.34.3_0+perl5_34 (active)
+  perl5.34 @5.34.3_1 (active)
+  pkgconfig @0.29.2_0 (active)
+  py-bootstrap-modules @2025-10-11_0 (active)
+  py313-build @1.4.3_0 (active)
+  py313-calver @2025.10.20_0 (active)
+  py313-cython @3.2.4_0 (active)
+  py313-editables @0.6_0 (active)
+  py313-flit_core @3.12.0_0 (active)
+  py313-hatchling @1.29.0_0 (active)
+  py313-installer @1.0.0_0 (active)
+  py313-packaging @26.0_0 (active)
+  py313-pathspec @1.0.4_0 (active)
+  py313-pluggy @1.6.0_0 (active)
+  py313-pygments @2.19.2_0 (active)
+  py313-pyproject_hooks @1.2.0_0 (active)
+  py313-setuptools @80.10.2_0 (active)
+  py313-setuptools_scm @9.2.2_0 (active)
+  py313-trove-classifiers @2026.1.14.14_0 (active)
+  py313-wheel @0.46.3_0 (active)
+  py313-yaml @6.0.3_0 (active)
+  py314-build @1.4.3_0 (active)
+  py314-flit_core @3.12.0_0 (active)
+  py314-installer @1.0.0_0 (active)
+  py314-meson @1.11.0_0 (active)
+  py314-packaging @26.0_0 (active)
+  py314-pyproject_hooks @1.2.0_0 (active)
+  py314-setuptools @80.10.2_0 (active)
+  py314-wheel @0.46.3_0 (active)
+  pygments_select @0.1_1 (active)
+  python3_select @0.1_0 (active)
+  python3_select-310 @0.1_1 (active)
+  python3_select-313 @0.1_1 (active)
+  python3_select-314 @0.1_1 (active)
+  python310 @3.10.20_0+lto+optimizations (active)
+  python313 @3.13.13_0+lto+optimizations (active)
+  python314 @3.14.4_0+lto+optimizations (active)
+  python_select @0.3_10 (active)
+  python_select-310 @0.3_1 (active)
+  python_select-313 @0.3_1 (active)
+  python_select-314 @0.3_1 (active)
+  re2c @4.3_0 (active)
+  readline @8.3.003_0 (active)
+  rust @1.94.1_0 (active)
+  sqlite3 @3.53.0_0 (active)
+  texinfo @7.3_0+perl5_34 (active)
+  tiff @4.7.1_0 (active)
+  tmux @3.6a_0+sixel (active)
+  util-linux @2.41.3_0 (active)
+  uv @0.11.3_0 (active)
+  w3m @0.5.3.20230121_0 (active)
+  xar @1.8.0.501_1 (active)
+  xmlcatmgr @2.2_1 (active)
+  xmlto @0.0.29_2 (active)
+  xorg-libice @1.1.2_0 (active)
+  xorg-libsm @1.2.6_0 (active)
+  xorg-libX11 @1.8.12_0 (active)
+  xorg-libXau @1.0.12_0 (active)
+  xorg-libxcb @1.17.0_0+python314 (active)
+  xorg-libXdmcp @1.1.5_0 (active)
+  xorg-libXext @1.3.6_0 (active)
+  xorg-libXt @1.3.1_0+docs (active)
+  xorg-util-macros @1.20.2_0 (active)
+  xorg-xcb-proto @1.17.0_0+python314 (active)
+  xorg-xcb-util @0.4.1_0 (active)
+  xorg-xorgproto @2024.1_0 (active)
+  xorg-xtrans @1.5.2_0 (active)
+  xrender @0.9.12_0 (active)
+  xz @5.8.3_0 (active)
+  xz-bootstrap @5.8.3_1 (active)
+  zlib @1.3.2_0 (active)
+  zstd @1.5.7_0 (active)

@@ -49,8 +49,8 @@
       "Bash(* --version*)",
       "Bash(* --help*)",
       "Bash(mutagen *)",
-      "Bash(tmux *)",
-      "Bash(ssh *)"
+      "Bash(ssh *)",
+      "Bash(.venv/bin/python *.py)"
     ],
     "deny": [
       "Bash(rm --rm*)",
@@ -75,7 +75,6 @@
       "Bash(chmod 7*)",
       "Bash(mkfs *)",
       "Bash(dd if=*)",
-      "Bash(tmux send-keys *)",
       "Bash(gh pr close*)",
       "Bash(gh pr merge*)",
       "Bash(gh issue close*)",
@@ -86,9 +85,10 @@
       "Bash(gh label delete*)",
       "Bash(gh api -X DELETE*)",
       "Bash(gh api --method DELETE*)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "claude-opus-4-6",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh"
@@ -96,15 +96,12 @@
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": false,
     "context7@claude-plugins-official": false,
-    "everything-claude-code@everything-claude-code": true,
     "pyright-lsp@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": false,
-    "superpowers@claude-plugins-official": false,
     "hookify@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": false,
     "code-review@claude-plugins-official": false,
     "pr-review-toolkit@claude-plugins-official": false,
-    "mgrep@Mixedbread-Grep": true,
     "commit-commands@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": false,
     "playwright@claude-plugins-official": true,
@@ -119,7 +116,9 @@
         "srv1407177.hstgr.cloud",
         "github.com",
         "api.github.com",
-        "raw.githubusercontent.com"
+        "raw.githubusercontent.com",
+        "https://3505is6p8i-vpce-00a4473996edc4a88.execute-api.eu-west-1.amazonaws.com/production/ground-truth/aggregated",
+        "localhost"
       ],
       "allowManagedDomainsOnly": false
     },
@@ -134,7 +133,8 @@
         "~/.rm-safely-undo-stack",
         "~/.rm-safely-undo-stack.tmp",
         "~/.bun",
-        ".git"
+        ".git",
+        "~/Library/Caches/ms-playwright"
       ],
       "denyWrite": [
         "//bin",
@@ -167,7 +167,12 @@
       ],
       "allowRead": [
         "~/.ssh/config",
-        "~/.Trash"
+        "~/.Trash",
+        "~/Library/Caches/ms-playwright",
+        "/var/select",
+        "/System/Library/CoreServices/SystemVersion.plist",
+        "/Applications/Xcode.app",
+        "/Applications/Xcode-*.app"
       ]
     },
     "excludedCommands": [
@@ -176,5 +181,13 @@
       "config"
     ]
   },
-  "skipDangerousModePermissionPrompt": true
+  "effortLevel": "high",
+  "voice": {
+    "enabled": true,
+    "mode": "tap"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true
 }

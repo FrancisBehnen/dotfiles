@@ -4,7 +4,7 @@
 
 set -e
 
-ecc_dir="$HOME/Documents/Code/everything-claude-code"
+ecc_dir="$HOME/Code/everything-claude-code"
 languages=(typescript python golang)
 
 if [[ ! -d "$ecc_dir" ]]; then

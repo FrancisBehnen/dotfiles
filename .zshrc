@@ -250,3 +250,6 @@ export DBT_TEAM=webandapp
 export DBT_ENV=development
 
 
+
+# Load secrets not tracked in dotfiles
+[ -f ~/.secrets ] && source ~/.secrets
