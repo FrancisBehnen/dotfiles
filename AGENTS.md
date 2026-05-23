@@ -19,7 +19,6 @@ myports / requested_ports    — MacPorts snapshots
 scripts/
   setup.sh                   — Bootstrap script (admin/non-admin aware, idempotent)
   claude-mv                  — Move project directories + migrate Claude context
-  claude-sync-rules          — Sync ECC rules from upstream
   vintage                    — Install pinned Homebrew versions (admin only)
 support_and_preference_files_to_migrate/  — App preference files + link script
 ```
@@ -43,13 +42,12 @@ support_and_preference_files_to_migrate/  — App preference files + link script
 
 When asked to do periodic maintenance in `~/`:
 
-1. `claude-sync-rules` — pull latest ECC rules
-2. `brew bundle dump --force --file=~/Brewfile` — sync Brewfile
-3. `port installed > ~/myports` — snapshot MacPorts (if available)
-4. `port echo requested | awk '{print $1}' | sort -u > ~/requested_ports` — sync requested ports (if available)
-5. `config submodule update --remote` — update plugins/themes
-6. Check preference symlinks are intact
-7. `config diff` → review, commit, push
+1. `brew bundle dump --force --file=~/Brewfile` — sync Brewfile
+2. `port installed > ~/myports` — snapshot MacPorts (if available)
+3. `port echo requested | awk '{print $1}' | sort -u > ~/requested_ports` — sync requested ports (if available)
+4. `config submodule update --remote` — update plugins/themes
+5. Check preference symlinks are intact
+6. `config diff` → review, commit, push
 
 ## Rules
 

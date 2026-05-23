@@ -161,7 +161,6 @@
         "~/Library",
         "//root",
         "//etc",
-        "//var",
         "//System",
         "//Applications"
       ],
@@ -169,7 +168,9 @@
         "~/.ssh/config",
         "~/.Trash",
         "~/Library/Caches/ms-playwright",
-        "/var/select",
+        "/var/select/developer_dir",
+        "/private/var/select",
+        "/private/var/select/developer_dir",
         "/System/Library/CoreServices/SystemVersion.plist",
         "/Applications/Xcode.app",
         "/Applications/Xcode-*.app"

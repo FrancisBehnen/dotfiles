@@ -17,9 +17,7 @@
       "Bash(config check-ignore:*)",
       "Bash(config status:*)",
       "Bash(git:*)",
-      "Bash($HOME/Documents/Code/everything-claude-code/install.sh typescript:*)",
       "Bash(source $HOME/.shell_functions)",
-      "Bash(claude-sync-rules)",
       "Bash(port echo:*)",
       "Bash(config submodule:*)",
       "Bash(zsh $HOME/support_and_preference_files_to_migrate/link_preferences.zsh)"
