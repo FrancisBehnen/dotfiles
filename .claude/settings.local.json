@@ -23,7 +23,6 @@
       "Bash(zsh $HOME/support_and_preference_files_to_migrate/link_preferences.zsh)"
     ]
   },
-
   "sandbox": {
     "enabled": true,
     "filesystem": {
@@ -31,7 +30,7 @@
         "~/.ssh/"
       ],
       "allowRead": [
-	"~/",
+        "~/",
         "."
       ]
     }
