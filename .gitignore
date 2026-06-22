@@ -1,3 +1,36 @@
 .dotfiles
 .DS_Store
 .secrets
+
+# ─── Claude Code: private & runtime data — never track in the PUBLIC dotfiles repo ───
+# Private content is version-controlled in the second bare repo (dotfiles-private),
+# which force-adds the few paths it owns. The pre-commit guardrail (core.hooksPath =
+# ~/.claude/.guardrail) is the hard backstop against accidental leaks.
+.claude/CLAUDE.private.md
+.claude/DOTFILES-PRIVATE.md
+.claude/.guardrail/
+.claude/projects/
+.claude/history.jsonl
+.claude/sessions/
+.claude/session-data/
+.claude/session-env/
+.claude/shell-snapshots/
+.claude/telemetry/
+.claude/file-history/
+.claude/paste-cache/
+.claude/backups/
+.claude/plans/
+.claude/tasks/
+.claude/ide/
+.claude/jobs/
+.claude/downloads/
+.claude/cache/
+.claude/daemon/
+.claude/daemon.log
+.claude/daemon-auth-status.json
+.claude/daemon-auth-cooldown
+.claude/remote-settings.json
+.claude/policy-limits.json
+.claude/mcp-needs-auth-cache.json
+.claude/.last-update-result.json
+.claude/.last-cleanup

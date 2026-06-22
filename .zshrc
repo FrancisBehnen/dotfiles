@@ -135,6 +135,23 @@ source $ZSH/oh-my-zsh.sh
 # Create config alias for the dotfiles repo
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
+# Private dotfiles: second bare repo over $HOME for Coolblue-internal Claude context
+# (~/.claude/CLAUDE.private.md + per-project memory). See ~/.claude/DOTFILES-PRIVATE.md.
+alias config-private='/usr/bin/git --git-dir=$HOME/.dotfiles-private/ --work-tree=$HOME'
+
+# Commit & push BOTH dotfiles repos in one go.
+# Public: stages tracked changes only (new files stay opt-in — that's the leak guardrail).
+# Private: force-re-adds its owned paths, so newly-created project memory is captured.
+config-sync() {
+  local msg="${1:-dotfiles sync}"
+  echo "→ public dotfiles"
+  config add -u && config commit -m "$msg" && config push
+  echo "→ private dotfiles"
+  config-private add -f "$HOME/.claude/CLAUDE.private.md" "$HOME/.claude/DOTFILES-PRIVATE.md" \
+    "$HOME/.claude/.guardrail/pre-commit" "$HOME"/.claude/projects/*/memory \
+    && config-private commit -m "$msg" && config-private push
+}
+
 
 # User-local MacPorts (non-admin install in ~/macports)
 if [[ -d "$HOME/macports/bin" ]]; then
@@ -253,3 +270,5 @@ export DBT_ENV=development
 
 # Load secrets not tracked in dotfiles
 [ -f ~/.secrets ] && source ~/.secrets
+
+export PATH="$HOME/.bq-wrapper:$PATH"

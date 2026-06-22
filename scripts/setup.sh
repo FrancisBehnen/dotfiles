@@ -244,6 +244,55 @@ setup_dotfiles() {
   $config_cmd submodule update --init --recursive
 }
 
+setup_private_dotfiles() {
+  # Coolblue-internal Claude context lives in a SEPARATE PRIVATE repo (dotfiles-private):
+  # a second bare repo over the same $HOME work-tree. See ~/.claude/DOTFILES-PRIVATE.md.
+  warn "────────────────────────────────────────────────────────────────────────────"
+  warn " PRIVATE DOTFILES — fresh-machine note:"
+  warn "   Claude Code encodes per-project memory paths from \$HOME, e.g."
+  warn "     ~/.claude/projects/-Users-francis-behnen/memory/"
+  warn "   For this repo's memory to line up, this machine's macOS short username MUST"
+  warn "   be 'francis.behnen' (home = /Users/francis.behnen). A different username"
+  warn "   silently shifts every project path and the memory won't be picked up."
+  warn "────────────────────────────────────────────────────────────────────────────"
+
+  local cpriv="/usr/bin/git --git-dir=$HOME/.dotfiles-private/ --work-tree=$HOME"
+  if [[ -d "$HOME/.dotfiles-private" ]]; then
+    info "Private dotfiles repo already present at ~/.dotfiles-private."
+  else
+    info "Cloning private dotfiles bare repo..."
+    if git clone --bare git@github.com:FrancisBehnen/dotfiles-private.git "$HOME/.dotfiles-private" 2>/dev/null \
+       || git clone --bare https://github.com/FrancisBehnen/dotfiles-private.git "$HOME/.dotfiles-private" 2>/dev/null; then
+      if ! $cpriv checkout 2>/dev/null; then
+        warn "Private checkout conflicts — backing up pre-existing files to ~/.dotfiles-backup..."
+        mkdir -p "$HOME/.dotfiles-backup"
+        $cpriv checkout 2>&1 | grep -E '^\s+' | awk '{print $1}' | while read -r f; do
+          mkdir -p "$HOME/.dotfiles-backup/$(dirname "$f")"
+          mv "$HOME/$f" "$HOME/.dotfiles-backup/$f" 2>/dev/null || true
+        done
+        $cpriv checkout
+      fi
+      $cpriv config --local status.showUntrackedFiles no
+      $cpriv config --local core.hooksPath /dev/null    # private repo is exempt from the guardrail
+      info "Private dotfiles checked out."
+    else
+      warn "Could not clone private dotfiles (no access — expected on a public-only clone). Skipping."
+    fi
+  fi
+
+  # Point the PUBLIC repo's hooks at the leak guardrail (no-op if the file isn't present yet).
+  /usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME" \
+    config --local core.hooksPath "$HOME/.claude/.guardrail" 2>/dev/null || true
+
+  # The public ~/.claude/CLAUDE.md imports ~/.claude/CLAUDE.private.md. Guarantee the target
+  # exists so the import never dangles, even on a public-only clone with no private access.
+  if [[ ! -f "$HOME/.claude/CLAUDE.private.md" ]]; then
+    mkdir -p "$HOME/.claude"
+    printf '%s\n' '<!-- Placeholder. Real content comes from the private dotfiles repo (dotfiles-private). -->' \
+      > "$HOME/.claude/CLAUDE.private.md"
+  fi
+}
+
 install_meslo_font() {
   local font_dir="$HOME/Library/Fonts"
   local font_base="MesloLGS NF"
@@ -309,6 +358,58 @@ install_tpm() {
   info "Installing tmux plugin manager (tpm)..."
   git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
   info "tpm installed. Launch tmux and press prefix + I to install plugins."
+}
+
+install_tmux_resurrect_agent() {
+  # Under iTerm's tmux integration (-CC) the status line is hidden, so
+  # tmux-continuum's status-line-driven auto-save never runs. Install a per-user
+  # LaunchAgent (no admin needed) that triggers a tmux-resurrect save every 5 min.
+  local wrapper="$HOME/scripts/tmux-resurrect-save"
+  local label="com.francisbehnen.tmux-resurrect-save"
+  local plist="$HOME/Library/LaunchAgents/${label}.plist"
+
+  if [[ ! -x "$wrapper" ]]; then
+    warn "tmux-resurrect save wrapper missing at $wrapper — skipping LaunchAgent."
+    return
+  fi
+
+  info "Installing tmux-resurrect save LaunchAgent..."
+  mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.cache"
+  cat > "$plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>${label}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>${wrapper}</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>StandardErrorPath</key>
+    <string>${HOME}/.cache/tmux-resurrect-save.log</string>
+</dict>
+</plist>
+PLIST
+
+  # Reload idempotently (bootout is fine to fail if not already loaded).
+  launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
+  if launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null; then
+    info "tmux-resurrect save LaunchAgent loaded (saves every 5 min)."
+  else
+    # Fall back to legacy load for older macOS.
+    launchctl unload "$plist" 2>/dev/null || true
+    launchctl load -w "$plist" 2>/dev/null \
+      && info "tmux-resurrect save LaunchAgent loaded (legacy)." \
+      || warn "Could not load LaunchAgent; load it manually: launchctl bootstrap gui/\$(id -u) $plist"
+  fi
 }
 
 install_claude_code() {
@@ -538,6 +639,10 @@ install_oh_my_zsh
 
 setup_dotfiles
 
+# ─── 6b. Private dotfiles (Coolblue-internal Claude context) ─────────────────
+
+setup_private_dotfiles
+
 # ─── 7. Meslo Nerd Font (for Powerlevel10k) ──────────────────────────────────
 
 install_meslo_font
@@ -550,6 +655,7 @@ install_bun
 # ─── 9. tmux Plugin Manager (tpm) ────────────────────────────────────────────
 
 install_tpm
+install_tmux_resurrect_agent
 
 # ─── 10. Claude Code ─────────────────────────────────────────────────────────
 
