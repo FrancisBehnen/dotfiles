@@ -238,6 +238,12 @@ if [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]]; then
   source "$HOME/google-cloud-sdk/completion.zsh.inc"
 fi
 
+# Glean CLI completions
+# Sources fresh from the binary each startup, so it always tracks the installed version.
+# If shell startup feels slow, switch to a cached file instead:
+#   glean completion zsh > ~/.oh-my-zsh_custom/completions/_glean   (picked up via fpath, zero startup cost)
+(( $+commands[glean] )) && source <(glean completion zsh)
+
 # ==== Local Airflow settings (Marketing / planet venus) ====
 export PLANET_NAME=venus
 export LOCAL_AIRFLOW_TEAM_FOLDER=webandapp
