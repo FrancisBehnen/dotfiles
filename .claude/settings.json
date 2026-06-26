@@ -50,7 +50,8 @@
       "Bash(* --help*)",
       "Bash(mutagen *)",
       "Bash(ssh *)",
-      "Bash(.venv/bin/python *.py)"
+      "Bash(.venv/bin/python *.py)",
+      "mcp__pencil"
     ],
     "deny": [
       "Bash(rm --rm*)",
@@ -88,7 +89,12 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-opus-4-6",
+  "model": "opus[1m]",
+  "deniedMcpServers": [
+    {
+      "serverName": "google-cloud-bigquery"
+    }
+  ],
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh"
@@ -105,7 +111,23 @@
     "commit-commands@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": false,
     "claude-md-management@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true
+    "skill-creator@claude-plugins-official": true,
+    "claude-obsidian@agricidaniel-claude-obsidian": true,
+    "plannotator@plannotator": true
+  },
+  "extraKnownMarketplaces": {
+    "agricidaniel-claude-obsidian": {
+      "source": {
+        "source": "github",
+        "repo": "AgriciDaniel/claude-obsidian"
+      }
+    },
+    "plannotator": {
+      "source": {
+        "source": "github",
+        "repo": "backnotprop/plannotator"
+      }
+    }
   },
   "sandbox": {
     "enabled": true,
