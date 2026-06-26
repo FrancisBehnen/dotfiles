@@ -479,6 +479,48 @@ install_agent_skills() {
   info "Agent skills installation complete."
 }
 
+setup_pulse_sources() {
+  # Headless project-pulse context sources. The launchd pulse runs `claude -p`, which loads
+  # NO claude.ai MCP connectors, so each source needs a local CLI. Glean + Fellow are set up
+  # here; the Slack source is reproduced by a private script (dotfiles-private), since its
+  # setup is intentionally kept out of this public repo. None of the auth can be scripted.
+
+  # Glean CLI
+  if command_exists glean; then
+    info "Glean CLI already installed."
+  elif command_exists brew; then
+    info "Installing Glean CLI..."
+    brew install gleanwork/tap/glean-cli >/dev/null 2>&1 \
+      || warn "Glean CLI install failed — run 'brew install gleanwork/tap/glean-cli'."
+  else
+    warn "Glean CLI not installed (no brew): brew install gleanwork/tap/glean-cli"
+  fi
+
+  # Fellow CLI (mcp2cli bake; OAuth completed interactively on first use)
+  if command_exists uvx; then
+    if uvx mcp2cli bake show fellow >/dev/null 2>&1; then
+      info "Fellow CLI bake already present."
+    else
+      info "Creating Fellow CLI (mcp2cli bake)..."
+      uvx mcp2cli bake create fellow --mcp https://fellow.app/mcp --oauth \
+        --description "Fellow.ai meetings, transcripts, summaries, action items" >/dev/null 2>&1 || true
+      uvx mcp2cli bake install fellow >/dev/null 2>&1 || true
+    fi
+  else
+    warn "uvx (uv) not found — needed for the Fellow/Slack CLIs."
+  fi
+
+  # Slack source: reproduced by a private script from dotfiles-private (kept out of this repo).
+  if [[ -x "$HOME/.config/slack-mcp/setup-slack.sh" ]]; then
+    info "Setting up Slack source (private script)..."
+    "$HOME/.config/slack-mcp/setup-slack.sh" || warn "Slack source setup reported an issue."
+  else
+    warn "Slack headless setup is in dotfiles-private (~/.claude/skills/project-context-sync/SLACK-HEADLESS.private.md) — script not found; skipping."
+  fi
+
+  warn "Pulse sources need one-time INTERACTIVE auth: 'glean auth login'; Fellow 'uvx mcp2cli --mcp https://fellow.app/mcp --oauth --list' (no --refresh); Slack token extraction per dotfiles-private."
+}
+
 link_preferences() {
   local pref_dir="$HOME/support_and_preference_files_to_migrate"
   if [[ -f "$pref_dir/link_preferences.zsh" ]]; then
@@ -667,6 +709,12 @@ fi
 
 if [[ "$OPT_CLAUDE" == true ]]; then
   install_agent_skills
+fi
+
+# ─── 11b. Project-pulse context sources (Glean / Fellow / Slack CLIs) ─────────
+
+if [[ "$OPT_CLAUDE" == true ]]; then
+  setup_pulse_sources
 fi
 
 # ─── 12. GitHub Copilot CLI ──────────────────────────────────────────────────
