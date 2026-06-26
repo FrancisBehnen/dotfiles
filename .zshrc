@@ -213,6 +213,9 @@ skills() {
 # Set bin folder for claude-remote
 export PATH="$HOME/bin:$PATH"
 
+# Claude Code helper scripts (e.g. pulse-runs)
+export PATH="$HOME/.claude/bin:$PATH"
+
 # rm-safely - Safe rm command
 source "$HOME/.rm-safely" >/dev/null 2>&1
 

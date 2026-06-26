@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""pulse-runs — browse headless project-pulse runs.
+
+`claude --resume` cannot list these: the cron runs `claude -p` (print mode),
+whose transcripts carry no `summary` record, so the resume picker shows nothing.
+This reads the day-logs (the -p text output) + the raw session transcripts instead.
+
+Usage:
+  pulse-runs            list recent runs (newest first)
+  pulse-runs N          show full run N: its -p text output + the raw transcript
+  pulse-runs -n K       list the last K runs (default 20)
+"""
+import sys, os, re, glob, json, datetime
+
+LOG_GLOB = os.path.expanduser("~/.claude/logs/project-pulse-*.log")
+# Derive the encoded transcript dir from the pulse cwd (no hardcoded username).
+# Claude Code encodes a project dir by replacing every non-alphanumeric char with "-"
+# (so "/Users/francis.behnen/..." → "-Users-francis-behnen-..." — the dot matters).
+PULSE_CWD = os.path.expanduser("~/Code/notes-coolblue/Pulse")
+TX_DIR = os.path.join(os.path.expanduser("~/.claude/projects"),
+                      re.sub(r"[^A-Za-z0-9]", "-", PULSE_CWD))
+
+HEADER = re.compile(r"^===== project-pulse run (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) (\S+) =====\s*$", re.M)
+EXIT = re.compile(r"^===== exit (\d+) @ (\d{2}:\d{2}:\d{2}) =====\s*$", re.M)
+
+
+def parse_runs():
+    runs = []
+    for logpath in sorted(glob.glob(LOG_GLOB)):
+        text = open(logpath, encoding="utf-8", errors="replace").read()
+        heads = list(HEADER.finditer(text))
+        for i, h in enumerate(heads):
+            start = h.end()
+            end = heads[i + 1].start() if i + 1 < len(heads) else len(text)
+            body = text[start:end]
+            m = EXIT.search(body)
+            runs.append(dict(
+                date=h.group(1), start=h.group(2), tz=h.group(3),
+                end=m.group(2) if m else None,
+                exit=int(m.group(1)) if m else None,
+                body=EXIT.sub("", body).strip(),
+                log=logpath,
+            ))
+    runs.sort(key=lambda r: (r["date"], r["start"]), reverse=True)
+    return runs
+
+
+def dur(date, t0, t1):
+    if not t1:
+        return "?"
+    f = "%Y-%m-%d %H:%M:%S"
+    try:
+        a = datetime.datetime.strptime(f"{date} {t0}", f)
+        b = datetime.datetime.strptime(f"{date} {t1}", f)
+        s = int((b - a).total_seconds())
+        return f"{s // 60}m{s % 60:02d}s" if s >= 0 else "?"
+    except ValueError:
+        return "?"
+
+
+def digest(body):
+    low = body.lower()
+    tags = []
+    for kw, lab in [("written", "written"), ("commit", "commit"), ("nudge", "nudge"),
+                    ("held", "held"), ("actively editing", "held"), ("quiet", "quiet"),
+                    ("error", "error"), ("failed", "error"), ("traceback", "error")]:
+        if kw in low and lab not in tags:
+            tags.append(lab)
+    return " ".join(tags) if tags else "—"
+
+
+PROMPT_SIG = "Scheduled project-pulse run"
+
+
+def _parse_iso(s):
+    try:
+        return datetime.datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()
+    except (ValueError, AttributeError):
+        return None
+
+
+def _pulse_session_start(path):
+    """Return the session-start epoch if this transcript is a headless pulse run, else None.
+    Identified by the scheduled-pulse prompt signature (filters out interactive sessions
+    that also live in this project dir)."""
+    start, is_pulse = None, False
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for n, line in enumerate(fh):
+            if n > 200:
+                break
+            if start is None:
+                try:
+                    ts = json.loads(line).get("timestamp")
+                except json.JSONDecodeError:
+                    ts = None
+                if ts:
+                    start = _parse_iso(ts)
+            if PROMPT_SIG in line:
+                is_pulse = True
+            if is_pulse and start is not None:
+                break
+    return start if is_pulse else None
+
+
+def find_transcript(run):
+    """Match the pulse transcript whose start time is closest to the run's start (within 5 min).
+    Matches on the prompt signature + start time, so interactive sessions in this dir are ignored."""
+    try:
+        run_start = datetime.datetime.strptime(f'{run["date"]} {run["start"]}', "%Y-%m-%d %H:%M:%S").timestamp()
+    except ValueError:
+        return None
+    best, bestd = None, 1e9
+    for f in glob.glob(os.path.join(TX_DIR, "*.jsonl")):
+        s = _pulse_session_start(f)
+        if s is None:
+            continue
+        d = abs(s - run_start)
+        if d < bestd:
+            best, bestd = f, d
+    return best if bestd < 300 else None
+
+
+def render_transcript(path):
+    out = []
+    for line in open(path, encoding="utf-8", errors="replace"):
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        typ = rec.get("type")
+        msg = rec.get("message", {}) if isinstance(rec.get("message"), dict) else {}
+        if typ == "assistant":
+            for b in msg.get("content", []):
+                if not isinstance(b, dict):
+                    continue
+                if b.get("type") == "text" and b.get("text", "").strip():
+                    out.append("🤖 " + b["text"].strip())
+                elif b.get("type") == "tool_use":
+                    inp = json.dumps(b.get("input", {}), ensure_ascii=False)
+                    out.append(f"   → {b.get('name')}({inp[:160]})")
+        elif typ == "user":
+            c = msg.get("content")
+            if isinstance(c, str) and c.strip():
+                out.append("👤 " + c.strip()[:500])
+            elif isinstance(c, list):
+                for b in c:
+                    if isinstance(b, dict) and b.get("type") == "tool_result":
+                        r = b.get("content", "")
+                        if isinstance(r, list):
+                            r = " ".join(x.get("text", "") for x in r if isinstance(x, dict))
+                        r = str(r).strip().replace("\n", " ")
+                        if r:
+                            out.append(f"   ⟵ {r[:200]}")
+    return "\n".join(out)
+
+
+def main():
+    args = sys.argv[1:]
+    limit = 20
+    if args and args[0] == "-n":
+        limit = int(args[1])
+        args = args[2:]
+    runs = parse_runs()
+    if not runs:
+        print(f"No runs found in {LOG_GLOB}")
+        return
+    if args and args[0].lstrip("-").isdigit():
+        idx = int(args[0])
+        if idx < 1 or idx > len(runs):
+            print(f"No run {idx} (have {len(runs)})")
+            return
+        r = runs[idx - 1]
+        print(f"━━ run #{idx}  {r['date']} {r['start']} {r['tz']}  exit={r['exit']}  ({dur(r['date'], r['start'], r['end'])}) ━━")
+        print(f"log: {r['log']}\n")
+        print("── -p text output ──\n" + r["body"] + "\n")
+        tx = find_transcript(r)
+        if tx:
+            print(f"── full transcript: {tx} ──\n" + render_transcript(tx))
+        else:
+            print("(no matching transcript within 5 min of run end)")
+        return
+    print(f"Recent project-pulse runs (newest first) — {len(runs)} total, showing {min(limit, len(runs))}\n")
+    print(f"{'#':>3}  {'date':10} {'start':8} {'dur':>7} {'exit':4}  outcomes")
+    print("  " + "─" * 60)
+    for i, r in enumerate(runs[:limit], 1):
+        ec = "✓0" if r["exit"] == 0 else (f"✗{r['exit']}" if r["exit"] is not None else "?")
+        print(f"{i:>3}  {r['date']:10} {r['start']:8} {dur(r['date'], r['start'], r['end']):>7} {ec:4}  {digest(r['body'])}")
+    print("\n  pulse-runs N   → full output + transcript of run N")
+
+
+if __name__ == "__main__":
+    main()
