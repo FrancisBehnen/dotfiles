@@ -55,8 +55,10 @@ SCRIPT=~/.claude/skills/fellow/scripts/fellow
 
 - **Need an ID?** Run `search-meetings` first. It returns `meeting_id`, `note_id`, and
   (for recorded meetings) `recording_id`.
-- **Just need the gist?** Use `get-meeting-summary` — it already contains chapters, action
-  items, and decisions. Don't pull the transcript unless the summary is insufficient.
+- **Just need the gist?** Read the summary embedded in `search-meetings` output
+  (`summaries[].final_summary`, chapters, action items, decisions). The dedicated
+  `get-meeting-summary` tool is broken as of 2026-06-15 — see gotchas. Don't pull the transcript
+  unless the embedded summary is insufficient.
 - **Need the transcript?** Redirect to disk (see above). For meetings ≥ 15 min, prefer a
   time window: `--start-time` / `--end-time` (seconds from start). Min range 300s, max 3600s.
 - **Multi-part meeting** (bot rejoined)? Each part's timestamps restart at 0:00. Pass
@@ -64,6 +66,13 @@ SCRIPT=~/.claude/skills/fellow/scripts/fellow
 
 ## Anti-patterns & gotchas (learned through testing)
 
+- **`get-meeting-summary` is currently broken (as of 2026-06-15).** The server returns
+  `McpError: Error executing tool` for this one endpoint, then the transport fallback 405s on
+  `https://fellow.app/mcp`. This is **server-side and not fixed by re-auth** (auth and every other
+  tool work fine). **Workaround:** `search-meetings` embeds the full summary for recorded meetings —
+  the `summaries[].final_summary`, `chapters`, `action_items`, and `decisions` are all in its
+  output. Get the gist from `search-meetings` instead of `get-meeting-summary`. Retry the dedicated
+  tool periodically; remove this note once it works again.
 - **Global flags must precede the subcommand.** `fellow --pretty --raw <cmd> ...` works;
   `fellow <cmd> --pretty` fails with `unrecognized arguments`. Affects `--pretty`, `--raw`,
   `--head`, `--json`, `--toon`.
@@ -84,9 +93,26 @@ SCRIPT=~/.claude/skills/fellow/scripts/fellow
 
 ## Re-auth / maintenance
 
-- Token lives in `~/.cache/mcp2cli/oauth/`; refresh is automatic. If it fully expires, the next
-  call opens a browser for re-consent. Force a clean re-auth:
-  `uvx mcp2cli --mcp https://fellow.app/mcp --oauth --refresh --list`
+- Token lives in `~/.cache/mcp2cli/oauth/<hash>/` — `client.json` = the dynamic-client
+  registration, `tokens.json` = access + refresh token. Refresh is automatic via the
+  refresh-token. If only `client.json` is present (no `tokens.json`), the refresh token is gone
+  and the next call opens a browser for re-consent.
+- **Always pass `--oauth`** on calls. Without it mcp2cli attaches no token and `fellow.app`
+  returns `401 Unauthorized` (the tool list / call just fails).
+- **`Error: invalid_request — Mismatching redirect URI` in the browser during re-consent**
+  (hit 2026-06-26; symptom upstream = headless pulse runs go "blind" on Fellow): the cached
+  `client.json` is pinned to a fixed loopback port, e.g.
+  `redirect_uris: ["http://127.0.0.1:52378/callback"]`. On re-auth mcp2cli binds a *different*
+  port, so the `redirect_uri` no longer matches what `fellow.app` registered for that client →
+  the authorize step is rejected. **This is NOT an expired token, and `--refresh` does NOT fix
+  it** — `--refresh` reuses the same broken registration. Fix:
+  1. Move the stale registration aside (reversible):
+     `mv ~/.cache/mcp2cli/oauth/<hash> ~/.cache/mcp2cli/oauth/<hash>.stale-bak`
+  2. Re-auth **without** `--refresh`, so a fresh client registers with a port that matches:
+     `uvx mcp2cli --mcp https://fellow.app/mcp --oauth --list` → complete the browser consent.
+  3. Confirm `tokens.json` appeared (has `access_token` + `refresh_token`). The refresh-token
+     grant doesn't use `redirect_uri`, so headless refreshes won't hit the mismatch again.
+  (Root cause is the known MCP loopback-port redirect-URI bug; nothing Fellow/Coolblue-specific.)
 - Connection is "baked" as `fellow` (see `uvx mcp2cli bake show fellow`). The wrapper at
   `scripts/fellow` just execs `mcp2cli @fellow "$@"`.
 - Requires network access to `fellow.app`, which is outside the default Bash sandbox allowlist —
