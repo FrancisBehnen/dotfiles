@@ -106,6 +106,8 @@ Reach for Glean when:
 
 After a successful sync, update the `Last synced` line in `.agents/project-context.md` to the current time. This is what makes the next run incremental rather than starting from scratch.
 
+If you leave an inline audit comment below the timestamp (e.g. an automated pulse recording "QUIET, nothing new"), keep it to **a single line and overwrite the previous one** — don't append a fresh multi-line comment each run, or the file grows unboundedly. One line: window + per-source verdict + any genuine carry-forward. Anything longer than that belongs in the vault note's Changelog, not here.
+
 ### 6. Report back
 
 Give the user a brief synthesized summary of what's new, lightly grouped by source. Keep it tight — highlights, not a transcript dump. A good shape:

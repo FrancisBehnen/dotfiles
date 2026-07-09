@@ -180,12 +180,15 @@ def main():
             print("(no matching transcript within 5 min of run end)")
         return
     print(f"Recent project-pulse runs (newest first) — {len(runs)} total, showing {min(limit, len(runs))}\n")
-    print(f"{'#':>3}  {'date':10} {'start':8} {'dur':>7} {'exit':4}  outcomes")
-    print("  " + "─" * 60)
+    print(f"{'#':>3}  {'date':10} {'start':8} {'dur':>7} {'exit':4}  {'session id':36}  outcomes")
+    print("  " + "─" * 100)
     for i, r in enumerate(runs[:limit], 1):
         ec = "✓0" if r["exit"] == 0 else (f"✗{r['exit']}" if r["exit"] is not None else "?")
-        print(f"{i:>3}  {r['date']:10} {r['start']:8} {dur(r['date'], r['start'], r['end']):>7} {ec:4}  {digest(r['body'])}")
+        tx = find_transcript(r)
+        sid = os.path.splitext(os.path.basename(tx))[0] if tx else "-"
+        print(f"{i:>3}  {r['date']:10} {r['start']:8} {dur(r['date'], r['start'], r['end']):>7} {ec:4}  {sid:36}  {digest(r['body'])}")
     print("\n  pulse-runs N   → full output + transcript of run N")
+    print("  claude --resume <session id>   → resume a run's conversation")
 
 
 if __name__ == "__main__":

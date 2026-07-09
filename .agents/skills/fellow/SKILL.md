@@ -97,22 +97,48 @@ SCRIPT=~/.claude/skills/fellow/scripts/fellow
   registration, `tokens.json` = access + refresh token. Refresh is automatic via the
   refresh-token. If only `client.json` is present (no `tokens.json`), the refresh token is gone
   and the next call opens a browser for re-consent.
+- **Detecting this in a headless / pulse run (do this BEFORE calling Fellow):** check
+  `~/.cache/mcp2cli/oauth/<hash>/`. If it has `client.json` but **no `tokens.json`**, the refresh
+  token is gone and the next call **will block on a browser consent that no headless run can
+  complete**. In that state: do **not** call Fellow (it hangs ~indefinitely on the browser flow),
+  and do **not** `mv` the cache dir (that strands it further with consent still impossible).
+  Re-consent is a human-in-the-loop gate — surface it as a human-required action with the exact
+  fix command below; never report a vague "token expired, re-check next run."
 - **Always pass `--oauth`** on calls. Without it mcp2cli attaches no token and `fellow.app`
   returns `401 Unauthorized` (the tool list / call just fails).
-- **`Error: invalid_request — Mismatching redirect URI` in the browser during re-consent**
-  (hit 2026-06-26; symptom upstream = headless pulse runs go "blind" on Fellow): the cached
-  `client.json` is pinned to a fixed loopback port, e.g.
-  `redirect_uris: ["http://127.0.0.1:52378/callback"]`. On re-auth mcp2cli binds a *different*
-  port, so the `redirect_uri` no longer matches what `fellow.app` registered for that client →
-  the authorize step is rejected. **This is NOT an expired token, and `--refresh` does NOT fix
-  it** — `--refresh` reuses the same broken registration. Fix:
-  1. Move the stale registration aside (reversible):
-     `mv ~/.cache/mcp2cli/oauth/<hash> ~/.cache/mcp2cli/oauth/<hash>.stale-bak`
-  2. Re-auth **without** `--refresh`, so a fresh client registers with a port that matches:
-     `uvx mcp2cli --mcp https://fellow.app/mcp --oauth --list` → complete the browser consent.
+- **ROOT CAUSE of the recurring re-consent (diagnosed 2026-06-30).** Why `tokens.json` keeps
+  vanishing: mcp2cli's `_RobustOAuthClientProvider._handle_refresh_response` (`mcp2cli/__init__.py`)
+  **deletes BOTH `tokens.json` and `client.json` whenever a refresh-token grant fails** —
+  `storage.clear_client_info()` + `storage.clear_tokens()`. It's deliberate (a workaround for
+  Atlassian issue #50), but it means *one* failed refresh (transient 5xx, aged-out refresh token,
+  or a DCR client the server forgot) doesn't just end the session — it erases the client
+  registration too, so the next call does a fresh Dynamic Client Registration + full browser
+  `authorization_code` consent. Headless can't complete that → Fellow goes dark until a human
+  re-consents. **Nothing on our side stops the wipe** (it's upstream behaviour — filed as
+  [knowsuchagency/mcp2cli#59](https://github.com/knowsuchagency/mcp2cli/issues/59)); we only make
+  recovery reliable + make the dark state loud (the headless-detection bullet above). Real upstream
+  fix would be: don't drop the DCR client on a *transient* refresh failure (only on
+  `invalid_client`/`invalid_grant`).
+- **`Error: invalid_request — Mismatching redirect URI` during re-consent** (hit 2026-06-26).
+  Secondary bug that made recovery flaky: mcp2cli used to pick a **random** loopback callback port
+  each run (`_find_free_port`), so a re-auth bound a different port than the cached `client.json`
+  had registered → `fellow.app` rejected `/authorize`. **MITIGATED 2026-06-30** by pinning a fixed
+  port in the baked connection:
+  `uvx mcp2cli bake create fellow --force --mcp https://fellow.app/mcp --oauth --oauth-client-name mcp2cli --cache-ttl 3600 --oauth-redirect-uri http://127.0.0.1:52663/callback --description "..."`.
+  Confirm with `uvx mcp2cli bake show fellow` → `oauth_redirect_uri` should be the fixed
+  `http://127.0.0.1:52663/callback`. With the port pinned, every re-consent binds the same port,
+  so the mismatch can't recur.
+- **The one-time human re-consent (after a wipe).** This still needs a browser — it cannot run
+  headless. Steps:
+  1. Move any stale registration aside (reversible; use a dated suffix so you don't clobber an
+     earlier `.stale-bak`):
+     `mv ~/.cache/mcp2cli/oauth/<hash> ~/.cache/mcp2cli/oauth/<hash>.stale-bak-$(date +%m%d)`
+  2. Re-auth **through the baked tool** (NOT the ad-hoc `--mcp` form — only the baked tool carries
+     the pinned `oauth_redirect_uri`): `~/.claude/skills/fellow/scripts/fellow --list` (or
+     `uvx mcp2cli @fellow --list`) → complete the browser consent. Do **not** use `--refresh`.
   3. Confirm `tokens.json` appeared (has `access_token` + `refresh_token`). The refresh-token
-     grant doesn't use `redirect_uri`, so headless refreshes won't hit the mismatch again.
-  (Root cause is the known MCP loopback-port redirect-URI bug; nothing Fellow/Coolblue-specific.)
+     grant doesn't use `redirect_uri`, so subsequent headless refreshes work — until the next
+     refresh failure trips the upstream wipe again.
 - Connection is "baked" as `fellow` (see `uvx mcp2cli bake show fellow`). The wrapper at
   `scripts/fellow` just execs `mcp2cli @fellow "$@"`.
 - Requires network access to `fellow.app`, which is outside the default Bash sandbox allowlist —
