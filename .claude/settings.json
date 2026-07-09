@@ -66,9 +66,10 @@
       "Edit(/etc/**)"
     ],
     "ask": [
-      "Bash(git*push*--force*)",
-      "Bash(git*push*-f *)",
+      "Bash(git*push*--force)",
+      "Bash(git*push*--force *)",
       "Bash(git*push*-f)",
+      "Bash(git*push*-f *)",
       "Bash(git*reset*--hard*)",
       "Bash(git*clean*-fdx*)",
       "Bash(sudo *)",
@@ -77,7 +78,6 @@
       "Bash(mkfs *)",
       "Bash(dd if=*)",
       "Bash(gh pr close*)",
-      "Bash(gh pr merge*)",
       "Bash(gh issue close*)",
       "Bash(gh issue delete*)",
       "Bash(gh repo delete*)",
@@ -130,7 +130,7 @@
     }
   },
   "sandbox": {
-    "enabled": true,
+    "enabled": false,
     "allowUnsandboxedCommands": true,
     "network": {
       "allowedDomains": [
@@ -204,11 +204,13 @@
     ]
   },
   "effortLevel": "high",
+  "tui": "fullscreen",
   "voice": {
     "enabled": true,
     "mode": "tap"
   },
   "skipDangerousModePermissionPrompt": true,
+  "remoteControlAtStartup": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true
