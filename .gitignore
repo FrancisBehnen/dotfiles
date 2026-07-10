@@ -34,3 +34,4 @@
 .claude/mcp-needs-auth-cache.json
 .claude/.last-update-result.json
 .claude/.last-cleanup
+Pluginfile.private

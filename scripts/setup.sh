@@ -474,9 +474,57 @@ install_agent_skills() {
   info "Installing agent skills from Skillfile..."
   grep -v '^\s*#' "$skillfile" | grep -v '^\s*$' | while read -r ref; do
     info "  Installing skill: $ref"
-    bunx skills add "$ref" || warn "  Failed to install skill: $ref"
+    # Word-split so a line can carry flags (e.g. "owner/repo --copy" for
+    # PromptScript skills that can't be symlinked globally).
+    read -ra _skill_args <<< "$ref"
+    bunx skills add "${_skill_args[@]}" || warn "  Failed to install skill: $ref"
   done
   info "Agent skills installation complete."
+}
+
+install_claude_plugins() {
+  # Restore Claude Code marketplaces + plugins from Pluginfile (public) and
+  # Pluginfile.private (dotfiles-private, e.g. the internal Coolblue marketplace).
+  # Mirrors install_agent_skills. Plugins provide a large share of the setup —
+  # skills, commands, and MCPs (plannotator, frontend-design, playwright,
+  # context7, claude-obsidian, hookify, the LSPs, ...).
+  #   marketplace <name> <github-owner/repo>
+  #   plugin <plugin-name>@<marketplace-name>
+  if ! command_exists claude; then
+    warn "claude CLI not found — skipping plugin installation."
+    return
+  fi
+
+  local pluginfiles=("$HOME/Pluginfile" "$HOME/Pluginfile.private")
+  local any=false
+  for pf in "${pluginfiles[@]}"; do [[ -f "$pf" ]] && any=true; done
+  if [[ "$any" != true ]]; then
+    warn "No Pluginfile found at $HOME/Pluginfile — skipping plugin installation."
+    return
+  fi
+
+  # Marketplaces first (idempotent: add is a no-op / warn if already present).
+  info "Adding Claude Code marketplaces from Pluginfile(s)..."
+  for pf in "${pluginfiles[@]}"; do
+    [[ -f "$pf" ]] || continue
+    grep -E '^[[:space:]]*marketplace[[:space:]]' "$pf" | while read -r _kw name repo; do
+      info "  Marketplace: $name ($repo)"
+      claude plugin marketplace add "$repo" >/dev/null 2>&1 \
+        || warn "  Marketplace already present or failed to add: $repo"
+    done
+  done
+
+  # Then plugins (need their marketplace registered first).
+  info "Installing Claude Code plugins from Pluginfile(s)..."
+  for pf in "${pluginfiles[@]}"; do
+    [[ -f "$pf" ]] || continue
+    grep -E '^[[:space:]]*plugin[[:space:]]' "$pf" | while read -r _kw plugin; do
+      info "  Plugin: $plugin"
+      claude plugin install "$plugin" >/dev/null 2>&1 \
+        || warn "  Plugin already installed or failed: $plugin"
+    done
+  done
+  info "Claude Code plugin installation complete."
 }
 
 setup_pulse_sources() {
@@ -711,7 +759,13 @@ if [[ "$OPT_CLAUDE" == true ]]; then
   install_agent_skills
 fi
 
-# ─── 11b. Project-pulse context sources (Glean / Fellow / Slack CLIs) ─────────
+# ─── 11b. Claude Code plugins + marketplaces (from Pluginfile) ────────────────
+
+if [[ "$OPT_CLAUDE" == true ]]; then
+  install_claude_plugins
+fi
+
+# ─── 11c. Project-pulse context sources (Glean / Fellow / Slack CLIs) ─────────
 
 if [[ "$OPT_CLAUDE" == true ]]; then
   setup_pulse_sources

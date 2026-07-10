@@ -1,0 +1,39 @@
+# Pluginfile — Claude Code marketplaces + plugins (public)
+#
+# Restored by scripts/setup.sh via:
+#   claude plugin marketplace add <github-owner/repo>
+#   claude plugin install <plugin>@<marketplace>
+#
+# Format (lines starting with # are comments, blank lines ignored):
+#   marketplace <name> <github-owner/repo>
+#   plugin <plugin-name>@<marketplace-name>
+#
+# Plugins provide a large share of this setup — skills, slash commands, and MCP
+# servers. e.g. plannotator (the plannotator-* skills), frontend-design,
+# playwright, context7 (an MCP), claude-obsidian (the obsidian suite), hookify,
+# and the pyright/typescript LSPs.
+#
+# Internal/private marketplaces (e.g. Coolblue) live in Pluginfile.private,
+# tracked in the dotfiles-private repo and merged in by setup.sh.
+
+# ─── Marketplaces ────────────────────────────────────────────────────────────
+marketplace claude-plugins-official anthropics/claude-plugins-official
+marketplace agricidaniel-claude-obsidian AgriciDaniel/claude-obsidian
+marketplace plannotator backnotprop/plannotator
+
+# ─── Plugins ─────────────────────────────────────────────────────────────────
+plugin claude-md-management@claude-plugins-official
+plugin code-review@claude-plugins-official
+plugin code-simplifier@claude-plugins-official
+plugin commit-commands@claude-plugins-official
+plugin context7@claude-plugins-official
+plugin feature-dev@claude-plugins-official
+plugin frontend-design@claude-plugins-official
+plugin hookify@claude-plugins-official
+plugin playwright@claude-plugins-official
+plugin pr-review-toolkit@claude-plugins-official
+plugin pyright-lsp@claude-plugins-official
+plugin skill-creator@claude-plugins-official
+plugin typescript-lsp@claude-plugins-official
+plugin claude-obsidian@agricidaniel-claude-obsidian
+plugin plannotator@plannotator
