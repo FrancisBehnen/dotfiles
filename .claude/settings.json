@@ -78,8 +78,6 @@
       "Bash(chmod 7*)",
       "Bash(mkfs *)",
       "Bash(dd if=*)",
-      "Bash(gh pr close*)",
-      "Bash(gh issue close*)",
       "Bash(gh issue delete*)",
       "Bash(gh repo delete*)",
       "Bash(gh repo archive*)",
