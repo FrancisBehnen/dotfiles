@@ -7,22 +7,14 @@
 #
 # ⚠️  Verify these entries match the exact reference you used to install.
 #     Some skills may need a full package name or URL instead of just the name.
-#     If a single install (e.g. glean-cli) pulled in sub-skills, keep only
-#     the top-level entry here.
+#     If a single install pulled in sub-skills, keep only the top-level
+#     entry here.
+#
+#     Skills provided by a Claude Code plugin (Pluginfile) don't belong
+#     here — they aren't `bunx skills add` installs and won't resolve.
 
-defuddle
-find-skills
-glean-cli
-json-canvas
-obsidian-bases
-obsidian-cli
-obsidian-markdown
-skill-creator
 https://github.com/DitisAlex/agent-skills/tree/add-ai-service-router-migration-skill
-ai-service-router-migration
 knowsuchagency/mcp2cli
-mcp2cli
 mattpocock/skills
 jacob-bd/notebooklm-mcp-cli --copy
 jacob-bd/notebooklm-mcp-cli
-nlm-skill
