@@ -569,6 +569,48 @@ setup_pulse_sources() {
   warn "Pulse sources need one-time INTERACTIVE auth: 'glean auth login'; Fellow 'uvx mcp2cli --mcp https://fellow.app/mcp --oauth --list' (no --refresh); Slack token extraction per dotfiles-private."
 }
 
+install_cli_tools() {
+  # Restore agent-facing CLI tools from CLIfile — binaries that Claude's SKILLS
+  # invoke directly (nlm, playwright-cli, ctx7, defuddle, mcp2cli, ...) and that
+  # aren't covered by Brewfile / Skillfile / Pluginfile. Mirrors
+  # install_agent_skills / install_claude_plugins.
+  #   <name> | <verify-cmd> | <install-cmd>
+  # verify-cmd decides idempotency (exit 0 => already installed, skip).
+  # Glean/Fellow/Slack are intentionally NOT here — see setup_pulse_sources.
+  local clifile="$HOME/CLIfile"
+  if [[ ! -f "$clifile" ]]; then
+    warn "No CLIfile found at $clifile — skipping CLI tool installation."
+    return
+  fi
+
+  info "Installing agent CLI tools from CLIfile..."
+  # Read via a process-substitution fd so an install command's own stdin can't
+  # steal the next line (the same bug that bit the Skillfile restore loop).
+  while IFS='|' read -r name verify install; do
+    name=$(echo "$name"       | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    verify=$(echo "$verify"   | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    install=$(echo "$install" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    [[ -z "$name" || "$name" == \#* ]] && continue
+
+    if eval "$verify" >/dev/null 2>&1; then
+      info "  $name already installed."
+      continue
+    fi
+
+    # The package manager the install needs (npm/bun/uv/npx) must be present.
+    local mgr="${install%% *}"
+    if ! command_exists "$mgr"; then
+      warn "  $name: '$mgr' not found — skipping. Install by hand: $install"
+      continue
+    fi
+
+    info "  Installing $name: $install"
+    eval "$install" </dev/null >/dev/null 2>&1 \
+      || warn "  Failed to install $name — run by hand: $install"
+  done < <(grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$clifile")
+  info "Agent CLI tools installation complete."
+}
+
 link_preferences() {
   local pref_dir="$HOME/support_and_preference_files_to_migrate"
   if [[ -f "$pref_dir/link_preferences.zsh" ]]; then
@@ -769,6 +811,12 @@ fi
 
 if [[ "$OPT_CLAUDE" == true ]]; then
   setup_pulse_sources
+fi
+
+# ─── 11d. Agent CLI tools (from CLIfile) ─────────────────────────────────────
+
+if [[ "$OPT_CLAUDE" == true ]]; then
+  install_cli_tools
 fi
 
 # ─── 12. GitHub Copilot CLI ──────────────────────────────────────────────────

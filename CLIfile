@@ -1,0 +1,26 @@
+# CLIfile — agent-facing CLI tools that Claude's skills invoke directly.
+#
+# Reproduced by install_cli_tools() in scripts/setup.sh. These are binaries
+# that skills shell out to (nlm, playwright-cli, ctx7, defuddle, mcp2cli, ...)
+# and that are NOT covered by Brewfile / Skillfile / Pluginfile — until now
+# they were installed by hand on each machine.
+#
+# Format (pipe-delimited), one tool per line:
+#   <name> | <verify-cmd> | <install-cmd>
+#
+# - <verify-cmd> runs first; exit 0 => already installed, skip (idempotent).
+# - The first word of <install-cmd> (npm/bun/uv/npx) must be on PATH, or the
+#   tool is skipped with a warning.
+# - Lines starting with # and blank lines are ignored.
+#
+# NOTE: the glean / fellow / slack CLIs are handled by setup_pulse_sources()
+#       (project-pulse context path), NOT here — do not duplicate them.
+# NOTE: one-time INTERACTIVE auth is never scripted here (e.g. `nlm auth`,
+#       `glean auth login`). This file only installs the binaries.
+
+nlm                 | nlm --version                                          | uv tool install notebooklm-mcp-cli
+mcp2cli             | mcp2cli --version                                      | uv tool install mcp2cli
+ctx7                | ctx7 --version                                         | npm install -g ctx7@latest
+defuddle            | defuddle --version                                     | bun add -g defuddle
+playwright-cli      | playwright-cli --version                               | npm install -g @playwright/cli@latest
+playwright-browsers | ls "$HOME/Library/Caches/ms-playwright"/chromium-* >/dev/null 2>&1 | npx --yes playwright install chromium
