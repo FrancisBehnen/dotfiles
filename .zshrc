@@ -188,23 +188,25 @@ skills() {
       echo "No Skillfile found at $skillfile" >&2
       return 1
     fi
-    grep -v '^\s*#' "$skillfile" | grep -v '^\s*$' | while read -r ref; do
+    while read -r ref; do
       echo "Installing skill: $ref"
-      bunx skills add "$ref"
-    done
+      bunx skills add ${=ref} -y </dev/null
+    done < <(grep -v '^\s*#' "$skillfile" | grep -v '^\s*$')
     return
   fi
 
   bunx skills "$@"
   local exit_code=$?
 
-  # Track successful installs
+  # Track successful installs (only the package ref, i.e. the first
+  # positional arg after "add" - later args may be flags like --skill/--agent
+  # or their values, none of which are valid restore references on their own)
   if [[ $exit_code -eq 0 && "$1" == "add" ]]; then
     shift
-    for arg in "$@"; do
-      [[ "$arg" == -* ]] && continue
-      grep -qxF "$arg" "$skillfile" 2>/dev/null || echo "$arg" >> "$skillfile"
-    done
+    local pkg="$1"
+    if [[ -n "$pkg" && "$pkg" != -* ]]; then
+      grep -qxF "$pkg" "$skillfile" 2>/dev/null || echo "$pkg" >> "$skillfile"
+    fi
   fi
 
   return $exit_code
