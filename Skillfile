@@ -12,9 +12,12 @@
 #
 #     Skills provided by a Claude Code plugin (Pluginfile) don't belong
 #     here — they aren't `bunx skills add` installs and won't resolve.
+#
+#     Custom skills whose content is committed under .agents/skills/<name>
+#     with a tracked symlink in .claude/skills/ (e.g. caffeinate, fellow,
+#     nlm-skill, find-docs) don't belong here either — they arrive with the
+#     repo checkout, not via `bunx skills add`.
 
 https://github.com/DitisAlex/agent-skills/tree/add-ai-service-router-migration-skill
 knowsuchagency/mcp2cli
 mattpocock/skills
-jacob-bd/notebooklm-mcp-cli --copy
-jacob-bd/notebooklm-mcp-cli
