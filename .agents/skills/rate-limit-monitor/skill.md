@@ -41,19 +41,19 @@ If the 7-day window is also above 90%, warn the user separately — that one has
 
 ## Sleep cycle
 
-The point of the sleep cycle is to park the session until the 5h window resets, without losing the conversation. `ScheduleWakeup` caps at 3600s (1 hour), and a reset can be up to ~5 hours out, so the cycle wakes briefly every hour to re-check. Each wake-up is cheap: one API call, one decision, back to sleep. This keeps the session alive and avoids starting cold from a separate process.
+The point of the sleep cycle is to park the session until the 5h window resets, without losing the conversation. `ScheduleWakeup` caps at 3600s (1 hour); this skill sleeps for 3300s (55 min) at a time to stay under that cap with margin, and a reset can be up to ~5 hours out, so the cycle wakes briefly every 55 minutes to re-check. Each wake-up is cheap: one API call, one decision, back to sleep. This keeps the session alive and avoids starting cold from a separate process.
 
 1. Read `resets_in_minutes` from the usage check.
 2. Pick a sleep duration:
 
    | Time until reset | Sleep duration | Rationale |
    |------------------|---------------|-----------|
-   | > 60 min | 3600s (1 hour) | Max allowed. Wake, re-check, sleep again. |
-   | 5–60 min | `(resets_in_minutes + 2) * 60` | Land just after the reset. |
+   | > 55 min | 3300s (55 min) | Max chosen by this skill (stays under the 3600s hard cap). Wake, re-check, sleep again. |
+   | 5–55 min | `(resets_in_minutes + 2) * 60` | Land just after the reset. |
    | 0–5 min | 270s — **once only** | Stay in prompt cache, wake right after reset. If utilization is still ≥90% on that wake, do NOT repeat — fall through to the stale-reset rule below. |
-   | **≤ 0 min (stale/frozen)** | **3600s (hibernate)** | A `resets_at` in the past with utilization still ≥90% means the reset estimate is WRONG, not that the window is about to roll. (Root cause found 2026-07-08: `check-usage.sh` parsed the UTC timestamp as local time, making every estimate 2h early in CEST — fixed with `date -u`. The rule stays as defense against any future estimate bug.) Treat the reset time as UNKNOWN. Do NOT rapid-poll — every short wake burns the very window you're waiting on. Hibernate in 1-hour hops until utilization itself drops below 80%. |
+   | **≤ 0 min (stale/frozen)** | **3300s (hibernate)** | A `resets_at` in the past with utilization still ≥90% means the reset estimate is WRONG, not that the window is about to roll. (Root cause found 2026-07-08: `check-usage.sh` parsed the UTC timestamp as local time, making every estimate 2h early in CEST — fixed with `date -u`. The rule stays as defense against any future estimate bug.) Treat the reset time as UNKNOWN. Do NOT rapid-poll — every short wake burns the very window you're waiting on. Hibernate in 55-min hops until utilization itself drops below 80%. |
 
-   **Hard rule: while utilization is ≥90%, never schedule a wake-up shorter than 3600s** except the single 0–5-min case above. Utilization dropping below 80% is the ONLY resume signal — not the reset timestamp, and not "tools still seem to work".
+   **Hard rule: while utilization is ≥90%, never schedule a wake-up shorter than 3300s** except the single 0–5-min case above. Utilization dropping below 80% is the ONLY resume signal — not the reset timestamp, and not "tools still seem to work".
 
 3. Call `ScheduleWakeup` with the chosen delay. Pass the `/loop` prompt through so the loop continues on wake-up.
 4. **Arm the hard-cap fallback** (see section below) for `(resets_in_minutes + 3) * 60` seconds:
@@ -101,8 +101,8 @@ ScheduleWakeup({
 Entering sleep (reset far away):
 ```
 ScheduleWakeup({
-  delaySeconds: 3600,
-  reason: "Rate limit at 93% — sleeping 1h, reset in 150 min",
+  delaySeconds: 3300,
+  reason: "Rate limit at 93% — sleeping 55m, reset in 150 min",
   prompt: "<the /loop prompt>"
 })
 ```
