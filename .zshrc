@@ -279,6 +279,14 @@ export DBT_ENV=development
 
 
 
+# Claude Code's Bash tool evals commands through a snapshot of this config.
+# Unset nomatch there so an unmatched glob degrades to a literal (bash-style)
+# instead of hard-aborting the whole command (claude-code#67146).
+# Interactive shells keep zsh's default nomatch behavior.
+if [[ -n "$CLAUDECODE" ]]; then
+  unsetopt nomatch
+fi
+
 # Load secrets not tracked in dotfiles
 [ -f ~/.secrets ] && source ~/.secrets
 
