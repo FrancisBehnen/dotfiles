@@ -24,7 +24,7 @@
     ]
   },
   "sandbox": {
-    "enabled": true,
+    "enabled": false,
     "filesystem": {
       "denyRead": [
         "~/.ssh/"
