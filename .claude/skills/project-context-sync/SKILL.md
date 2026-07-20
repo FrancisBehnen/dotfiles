@@ -74,6 +74,8 @@ Use the **`fellow` skill** for all Fellow access (searching meetings, summaries,
 
 For each related meeting you have **not** already read, get its **summary** first — it's usually enough. Pull the **transcript** only when the summary lacks substance you need (decisions, action items, disagreements), and when you do, save it to the transcript folder below rather than reading it into context.
 
+⚠️ **Person names in Fellow output are unreliable — verify spelling against a typed source (Slack message, email, directory) before recording a name anywhere** (notes, configs, docs). Fellow transcribes speech, and it mishears names systematically: in one week it produced "Maaike" for **Mijke Carlier** and "Anna Kwekers" for **Ana Queeckers** (both caught only when the correct spelling appeared in a typed Slack DM), and both propagated into project notes before being caught. If a repo's `.agents/project-context.md` has a *Transcript gotchas* section, check it — known mishearings for that project live there; add new ones when you catch them.
+
 #### Transcript folder convention
 
 This is the one Fellow-related rule that belongs to *this* skill rather than the fellow skill: where synced transcripts go.
