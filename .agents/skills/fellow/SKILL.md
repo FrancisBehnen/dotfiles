@@ -1,6 +1,6 @@
 ---
 name: fellow
-description: Query Fellow.ai meetings, transcripts, summaries, action items, and channels directly via CLI (bypasses the claude.ai connector). Use when the user asks about meeting notes, what was decided/said in a meeting, action items, or wants a transcript — especially to pull a transcript to disk WITHOUT loading it into context. Triggers include "Fellow", "meeting transcript", "what did we decide in", "action items from", "meeting summary".
+description: Query Fellow.ai meetings, transcripts, summaries, action items, and channels directly via CLI (bypasses the claude.ai connector). THE DEFAULT ROUTE FOR ALL FELLOW ACCESS — load this before calling any mcp__claude_ai_Fellow_ai__* tool, which is fallback-only (see the Routing rule). Use whenever meeting content is needed at all: notes, what was decided/said in a meeting, who attended, action items, or a transcript — especially to pull a transcript to disk WITHOUT loading it into context. Triggers include "Fellow", "meeting transcript", "what did we decide in", "action items from", "meeting summary", and any question whose answer lives in a meeting.
 allowed-tools: Bash(bash *), Bash(*/fellow *)
 ---
 
@@ -26,6 +26,39 @@ echo "bytes: $(wc -c < transcript.txt)"
 ```
 
 A ~30-minute transcript is ~27 KB (~7k tokens). Redirecting to disk keeps all of that out of context.
+
+## Routing rule — this CLI is the DEFAULT, the MCP connector is the fallback (Francis 2026-08-05)
+
+**Every Fellow query goes through this CLI first.** Do not reach for `mcp__claude_ai_Fellow_ai__*`
+because it appears in a CLAUDE.md context-sources table, or because its schema is already loaded —
+that is exactly the mistake this rule exists to stop. The CLI is not the "advanced" route; it is
+the route.
+
+Use the MCP connector **only** when one of these holds, and say which one:
+
+- The CLI's OAuth is in the wiped state (`client.json` present, `tokens.json` absent) and no human
+  is available to re-consent — see "Re-auth / maintenance" below.
+- No unsandboxed Bash is available (the CLI needs network access to `fellow.app`).
+- The CLI errors in a way the MCP demonstrably does not. Check this rather than assume it: the
+  known `get-meeting-summary` break fails through *both* routes.
+
+Why CLI-first, beyond the token saving:
+
+- **Output can go to disk.** The MCP forces every result through context. A single
+  `search-meetings` call has twice overflowed the tool-result cap in one session (75k and 165k
+  chars) and had to be re-read from a spill file — waste that `> file.txt` avoids entirely.
+- **It isolates the failure.** The CLI reaches `fellow.app/mcp` with its own OAuth, bypassing the
+  claude.ai gateway. When both routes return the same thing, "the source doesn't have it" becomes a
+  finding instead of a guess. Worked example (2026-08-05, upsell je-vorm provenance): the 3 June
+  "Upsell guidelines" transcript returned an empty 87-byte envelope through the MCP (4 time windows,
+  incl. explicit `recording_id`) **and** the CLI (`--meeting-id`, `--note-id`,
+  `--recording-id`+window) — while a CLI control call on a different meeting returned 4748 bytes.
+  That control is what let "unavailable at the source, not an auth or route problem" go into a
+  committed document as a claim rather than a hedge.
+- **Corollary — always run the control.** When a transcript comes back empty, pull a *known-good*
+  meeting through the same route before writing "unavailable". Without the control you cannot tell a
+  dead token from a meeting that has no transcript, and those demand opposite actions (re-consent vs.
+  fall back to chapter summaries and label the evidence as second-hand).
 
 ## Core workflow
 

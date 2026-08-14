@@ -460,9 +460,14 @@ install_copilot_cli() {
 }
 
 install_agent_skills() {
-  local skillfile="$HOME/Skillfile"
-  if [[ ! -f "$skillfile" ]]; then
-    warn "No Skillfile found at $skillfile — skipping agent skill installation."
+  # Restore agent skills from Skillfile (public) and Skillfile.private
+  # (dotfiles-private, e.g. skills hosted in the internal Coolblue org).
+  # Mirrors install_claude_plugins.
+  local skillfiles=("$HOME/Skillfile" "$HOME/Skillfile.private")
+  local any=false
+  for sf in "${skillfiles[@]}"; do [[ -f "$sf" ]] && any=true; done
+  if [[ "$any" != true ]]; then
+    warn "No Skillfile found at $HOME/Skillfile — skipping agent skill installation."
     return
   fi
 
@@ -471,13 +476,19 @@ install_agent_skills() {
     return
   fi
 
-  info "Installing agent skills from Skillfile..."
-  grep -v '^\s*#' "$skillfile" | grep -v '^\s*$' | while read -r ref; do
-    info "  Installing skill: $ref"
-    # Word-split so a line can carry flags (e.g. "owner/repo --copy" for
-    # PromptScript skills that can't be symlinked globally).
-    read -ra _skill_args <<< "$ref"
-    bunx skills add "${_skill_args[@]}" || warn "  Failed to install skill: $ref"
+  info "Installing agent skills from Skillfile(s)..."
+  for sf in "${skillfiles[@]}"; do
+    [[ -f "$sf" ]] || continue
+    # Redirect from the file rather than piping: a piped `while read` runs in a
+    # subshell and `bunx` can steal the loop's stdin (the bug that bit the
+    # original Skillfile loop and install_cli_tools).
+    while read -r ref; do
+      info "  Installing skill: $ref"
+      # Word-split so a line can carry flags (e.g. "owner/repo --copy" for
+      # PromptScript skills that can't be symlinked globally).
+      read -ra _skill_args <<< "$ref"
+      bunx skills add "${_skill_args[@]}" </dev/null || warn "  Failed to install skill: $ref"
+    done < <(grep -v '^\s*#' "$sf" | grep -v '^\s*$')
   done
   info "Agent skills installation complete."
 }

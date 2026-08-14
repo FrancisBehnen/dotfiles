@@ -29,6 +29,8 @@ Cheap = offline test suites, row/line counts, md5s, file existence, git state. *
 
 ⚠️ **Never re-verify an expensive baseline at resume.** Anything needing model draws (a judge probe at n=12, a generation run, a stability grid) costs real spend and minutes. Carry those forward **labelled with provenance** instead — *"measured 05-08, n=12, not re-verified this session"* — which closes the stale-number failure without paying to re-measure.
 
+⚠️ **Labelling alone does not make a carried number safe — check the source's rebuild cadence.** If the source rebuilds on a schedule shorter than the number's age, re-measure or drop the claim (08-10: a correctly dated 13-day-old count off a daily-rebuilt BigQuery view still travelled into two arguments and a peer's report as current fact).
+
 ⓘ Honest about what this buys: on 05-08 it confirmed two baselines and caught nothing. It is cheap insurance against a stale `.tmp`, not a bug-finder — and it does **not** catch a threshold that was wrong the first time it was written (that belongs to whoever wrote it).
 
 ## 4. Append a "FROM THE VAULT" section to the briefing

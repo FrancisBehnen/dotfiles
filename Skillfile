@@ -17,7 +17,12 @@
 #     with a tracked symlink in .claude/skills/ (e.g. caffeinate, fellow,
 #     nlm-skill, find-docs) don't belong here either — they arrive with the
 #     repo checkout, not via `bunx skills add`.
+#
+#     Skills that live in a PRIVATE repo go in Skillfile.private (tracked by
+#     dotfiles-private), not here — same split as Pluginfile/Pluginfile.private.
+#     setup.sh reads both.
 
 https://github.com/DitisAlex/agent-skills/tree/add-ai-service-router-migration-skill
 knowsuchagency/mcp2cli
 mattpocock/skills
+herdrdev/herdr

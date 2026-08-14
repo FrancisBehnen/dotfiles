@@ -291,3 +291,17 @@ fi
 [ -f ~/.secrets ] && source ~/.secrets
 
 export PATH="$HOME/.bq-wrapper:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+
+#autoload -U zkbd
+#[[ -n "$TERMINAL_EMULATOR" || -n "$ITERM_PROFILE" ]] && {
+#  # Initialize Zsh line-editor native mouse controls
+#  if [[ -n "$ZSH_VERSION" ]]; then
+#    autoload -Uz xterm-mouse-widget
+#    xterm-mouse-widget
+#  fi
+#}
+
+# CB_GITHUB_AUTOMATION_PACKAGES_PAT lives in ~/.secrets (sourced above) —
+# this file is tracked by the PUBLIC dotfiles repo, never put a token here.

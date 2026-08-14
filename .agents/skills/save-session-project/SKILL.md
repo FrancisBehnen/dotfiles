@@ -39,6 +39,23 @@ A session ends with `git status --porcelain` empty in every repo it touched. Wal
 
 Same for the scratchpad: if any committed file or note references a scratchpad script, promote it into the repo now (see §4) — the scratchpad is session-ephemeral.
 
+### Worktrees count as untracked paths
+
+Run `git worktree list` in every repo the session touched and give each worktree one of the same three dispositions — **remove**, **keep with a stated reason**, or **promote its work**. "Inherited from a previous session" is no more valid here than for a file, and a stale worktree is heavier debt: it holds a checkout, a `.venv` and a branch ref, and it makes `git worktree list` unreadable, so the next session cannot tell live work from residue. Measured 11-08: six worktrees on one repo, of which **five** were merged-and-idle and one was live.
+
+Decide by two cheap checks, not by the directory name:
+
+```bash
+git merge-base --is-ancestor <branch> <integration-branch>   # merged? -> removable
+git -C <worktree> status --porcelain                         # anyone's uncommitted work?
+```
+
+**Remove only when both say yes** (merged, and nothing uncommitted). Unmerged commits or dirty files mean it is someone's live work — leave it and say so in the `.tmp`. On 11-08 that rule saved `upsell-timewords`: 122 unmerged commits and 11 modified files, and it is a branch that must never be pushed. Removing a worktree does **not** delete its branch, so a merged branch stays reachable; say that in the wrap-up so the removal does not read as data loss.
+
+⚠️ **Unlink symlinks individually; never `find -type l -delete`, and never reach for `git worktree remove --force` to get past them.** Agent-built worktrees symlink `.venv`, `data/` and `.env` into the main checkout, so `git worktree remove` refuses with *"contains modified or untracked files"*. Two traps, both hit on 11-08: a repo may **track** a symlink (`src/upsell_content/CLAUDE.md` is mode `120000` → `AGENTS.md`), so a blanket sweep deletes a tracked file and leaves ` D` in four worktrees at once — recoverable with `git -C <wt> restore <path>`, but only if you notice. And `--force` would delete real content behind any symlink you had not identified. Unlink the specific paths the setup created, then remove.
+
+After removal, verify the **targets** survived — `ls` the pinned data directory and the venv in the main checkout, and run one offline suite — before reporting the cleanup as done.
+
 ## 4. Skills retrospective — always
 
 After the mirror, do this yourself by **introspection** — look back over the conversation already in your context and answer one question: **which skill would have done better today if it had already known what this session learned?** (No subagent: a spawned agent doesn't see this conversation, and exporting the transcript to give it one is exactly the cost we're avoiding. You just re-read what you already hold.) Scan for:
