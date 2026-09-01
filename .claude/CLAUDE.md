@@ -12,6 +12,24 @@ Every Bash-tool command and slash-command `!`-preamble is eval'd through a snaps
 - **If `!` arrives mangled as `\!`** (breaking `jq '!='`, `fixup!`, `<!DOCTYPE>`): that's Claude Code transport bug #61121, not your quoting — work around with `$'\x21'`.
 - **Bash-specific syntax** (arrays, `[[ =~ ]]` capture groups, etc.) → wrap in `bash -c '…'`.
 
+## Worktree-isolated subagents
+
+A branch can be checked out in only one worktree, and a **finished** agent's worktree keeps holding
+its branch. The next agent told to work on that branch gets git's "already checked out" refusal,
+reads it as a broken repo, and reaches for `git reset --hard` — aimed at whatever branch is nearby,
+often `main`. Observed three times in one session (2026-08-25); the resets failed rather than landed,
+but the attempts are the signal that a branch is occupied.
+
+- **Sweep each agent's worktree as it reports**, not at session end. Check `git worktree list` before
+  dispatching an agent onto a branch a previous agent used.
+- **Parking the primary checkout on `main` is not a cure** — it frees task branches but makes `main`
+  itself unavailable to a worktree. A scratch branch nobody wants is better.
+- **When an agent is already blocked**, the fix is `git push origin HEAD:refs/heads/<branch>` from its
+  own `worktree-agent-*` branch, never a reset. Verify with
+  `git log --oneline origin/<branch>..HEAD` first, and prefer `--force-with-lease` over `--force`.
+- **Tell agents in their brief** that "already checked out" means an occupied branch, and that they
+  must report a git-state block rather than work around it destructively.
+
 <!-- Company-specific instructions live in a private repo (FrancisBehnen/dotfiles-private) and
      are imported below. On a public-only clone this file may be absent; scripts/setup.sh creates
      an empty placeholder so this import never dangles. -->
