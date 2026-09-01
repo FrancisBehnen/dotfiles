@@ -32,6 +32,7 @@ PROMPT='Scheduled project-pulse run. Run the `project-pulse` skill for all activ
 
 Follow the skill exactly:
 - For each active project, sync via project-context-sync (Slack + Fellow + Glean) since its last_pulse / the repo Last synced watermark.
+- Slack sweeps go through `~/.claude/skills/project-context-sync/scripts/slack-sweep` — ONE mcp2cli session, one serial warm-up call, fan-out capped at 4, a per-call timeout, "swept N of M" progress, and a manifest naming every dropped call. NEVER fan out bare `slack ...` invocations in parallel: on 2026-09-01 the 11:10 run did that with ~31 concurrent calls, all of which independently rebuilt the same stale 11.9 MB users cache, and it burned 38 minutes in one sweep and ~2 hours overall without writing anything before being killed by hand. If the sweep exits 1, carry every dropped channel/person into the notification; if it exits 2 it swept nothing, so do NOT advance that repo'"'"'s Last synced watermark.
 - Context sources — the claude.ai MCP connectors (Slack, Glean, Fellow, Drive, Gmail, Calendar, Jira, BigQuery) ARE normally loaded in this headless run. When both a CLI and a connector can answer the same question, PREFER THE CLI: Slack via the `slack` CLI (`slack --list`, `slack <tool> ...` — it wraps `mcp2cli @slack`), Glean via the `glean` CLI (`glean search "..."`, `glean chat`), Fellow via the `fellow` skill/CLI, BigQuery via `bq` (on the PATH of this run — but it may still fail on interactive reauth, which is a report-and-move-on, never a claim of no BigQuery access). The CLIs may need the sandbox disabled (network / OAuth port bind). Fall back to the matching connector when a CLI is missing, unauthenticated, or fails — and say in the notification which source answered.
 - Never scan the home folder to locate a binary: `find ~/ ...` walks TCC-protected folders (Downloads, Music, Pictures, Documents, Desktop) and raises a macOS permission dialog per folder, on a run with nobody watching. Probe explicit paths instead.
 - If a project is quiet (nothing meaningful new), leave the vault untouched and send NO notification — only advance the repo-side Last synced watermark.
@@ -47,6 +48,10 @@ ALLOWED=(
   # Preferred context sources: the local CLIs.
   "Bash(fellow *)" "Bash(*/fellow *)"
   "Bash(slack *)" "Bash(*/slack *)"
+  # The batched sweep driver (one session, capped fan-out, per-call timeout) — it is
+  # a different argv0 from `slack`, so `Bash(slack *)` does not cover it.
+  "Bash(slack-sweep *)" "Bash(*/slack-sweep *)"
+  "Bash(mcp2cli --session-list)" "Bash(mcp2cli --session-stop *)"
   "Bash(glean *)" "Bash(*/glean *)"
   "Bash(uvx mcp2cli *)"
   # Connector fallbacks — these DO load in headless runs and carried most findings on 30-07:
