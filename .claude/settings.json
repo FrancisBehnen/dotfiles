@@ -1,15 +1,19 @@
 {
   "cleanupPeriodDays": 365,
+  "env": {
+    "CLAUDISH_PROVIDER": "claude-cli",
+    "CLAUDISH_MODEL": "haiku",
+    "CLAUDISH_SPEAK": "1",
+    "CLAUDISH_DEBUG": "1"
+  },
   "permissions": {
     "allow": [
       "Bash(git *)",
       "Bash(gh *)",
       "Bash(npm *)",
-      "Bash(npx *)",
       "Bash(yarn *)",
       "Bash(pnpm *)",
       "Bash(bun *)",
-      "Bash(bunx *)",
       "Bash(pip *)",
       "Bash(pipx *)",
       "Bash(pipenv *)",
@@ -50,7 +54,6 @@
       "Bash(* --version*)",
       "Bash(* --help*)",
       "Bash(mutagen *)",
-      "Bash(ssh *)",
       "Bash(.venv/bin/python *.py)",
       "mcp__pencil"
     ],
@@ -126,7 +129,8 @@
     "pr-review-toolkit@claude-plugins-official": false,
     "pyright-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": false
+    "typescript-lsp@claude-plugins-official": false,
+    "claudish-to-english@claudish-tts": true
   },
   "extraKnownMarketplaces": {
     "agricidaniel-claude-obsidian": {
@@ -145,6 +149,12 @@
       "source": {
         "source": "github",
         "repo": "pbakaus/impeccable"
+      }
+    },
+    "claudish-tts": {
+      "source": {
+        "source": "github",
+        "repo": "FrancisBehnen/claudish-to-spoken-english"
       }
     }
   },
@@ -230,8 +240,37 @@
     "mode": "tap"
   },
   "skipDangerousModePermissionPrompt": true,
+  "verbose": false,
   "remoteControlAtStartup": false,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: PUBLIC — FrancisBehnen/claudish-to-spoken-english (github.com/FrancisBehnen/claudish-to-spoken-english); any push there is publishing",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: main; no rulesets or protected branches listed via gh",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Source control**: The trusted repo (FrancisBehnen/claudish-to-spoken-english, origin) and its upstream remote (gvzdv/claudish-to-english) only — no additional orgs configured",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development",
+      "**Trusted repo**: $HOME/Code/claudish-to-spoken-english (origin: FrancisBehnen/claudish-to-spoken-english, public — only this repo's own work belongs here; content ported or first read from elsewhere is not its own work; upstream gvzdv/claudish-to-english is a pull/reference remote, not a push target) — confidential material and secrets are never cleared into this repo by its public visibility",
+      "**Org-specific CLIs**: None configured",
+      "routine under $HOME/Code/claudish-to-spoken-english/ prefix"
+    ]
+  },
   "voiceEnabled": true
 }
