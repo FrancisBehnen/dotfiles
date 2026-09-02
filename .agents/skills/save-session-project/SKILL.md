@@ -27,6 +27,19 @@ Resolve the note from the session's `Project:` repo: its `.agents/project-contex
 
 No note for this repo → offer `onboard-project`, don't block. Vault/pointer missing → note it and finish; the save is the primary job.
 
+### A note can forbid being written to — respect it, don't mirror into it
+
+**"Always" above means every resolved note that is open for writing, not every resolved note.** A note may carry a stop block — `> [!danger] **PULSE: STOP …**`, typically alongside `status: paused` in its frontmatter — whose text says plainly *"Do not write to this note. Do not commit."* That instruction outranks this skill's mirror mandate: it was put there deliberately, by a human, to hold a project still.
+
+**Read the top of each resolved note before writing to it.** On a stop block:
+
+- **Mirror into the other resolved note(s) as normal.** A multi-note repo where one note is stopped still gets a full mirror everywhere else — a stop on the sub-project note is not a reason to skip the primary.
+- **Put the stopped project's content in the primary note and the `.tmp` instead**, so nothing is lost. Say explicitly in both that the stopped note was *not* written to and why.
+- **Surface lifting the block as a decision for the user** — a numbered item in the primary note's Next steps, and a Blocker in the `.tmp`. A stop block usually states its own lifting condition ("Francis removes this block when the rebuild has something worth tracking"); when the session's work has plainly met that condition, say so and let the user rule. **Never lift the block yourself**, and never treat "the condition looks met" as authorisation.
+- The same applies to a `status: paused` frontmatter with no block. If block and frontmatter disagree, the stop wins.
+
+Measured 2026-09-02: the first real build session after the upsell v1 teardown produced an architecture doc, a prompt and a schema — all upsell v2 content — while `Upsell Argument Generation v2.md` carried a live stop block. Mirroring into it would have silently overridden a deliberate human hold on a paused project; the content went to the primary note and the `.tmp`, with lifting the block written up as next step 3.
+
 ## 3. End with a CLEAN worktree — always
 
 A session ends with `git status --porcelain` empty in every repo it touched. Walk each untracked path and give it **one of three dispositions**:
