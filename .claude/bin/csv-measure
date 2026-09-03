@@ -1,0 +1,455 @@
+#!/usr/bin/env python3
+"""csv-measure — read a CSV the way real files actually are, and report counts with their units.
+
+Why this exists
+---------------
+Every session that opens a CSV re-derives the same handful of traps, gets a
+plausible-looking wrong number, and argues about it. This bakes them in once:
+
+  1. UTF-8 BOM on the first header cell   -> decoded with utf-8-sig.
+  2. Column-aligned, space-padded files   -> a space before an opening quote defeats
+     csv.reader's quoting and fields split on their own internal commas
+     (a 22-column row reads as 23-27 cells). Fixed by skipinitialspace=True.
+  3. Space-padded HEADER cells            -> the half that gets missed. With (2) alone,
+     DictReader keys keep their trailing spaces, every lookup returns None, and the
+     file looks EMPTY rather than BROKEN. Header keys are stripped -- and so are cell
+     values, because skipinitialspace already strips the leading side and half-stripping
+     is the inconsistency that makes 'Intel' and 'Intel   ' two different brands.
+  4. Appended human review notes          -> a hand-annotated file can end in lines that
+     are not rows. They are listed verbatim, never counted as rows, never called
+     corruption. You decide which they are.
+  5. Counts differ by unit                -> physical lines != non-blank lines != parsed
+     records != full-width data rows != distinct values in a key column. Every number
+     this tool prints carries its unit, so a number lifted out of it into an argument
+     carries the unit with it.
+
+Nothing here is specific to any one pipeline: column names are always arguments,
+never defaults. Python standard library only, so it runs with no venv.
+"""
+
+from __future__ import annotations
+
+import argparse
+import codecs
+import csv
+import io
+import json
+import os
+import sys
+from collections import Counter, OrderedDict
+
+VERSION = "1.0"
+
+# csv.field_size_limit defaults to 128 KiB; long generated text fields exceed it.
+csv.field_size_limit(16 * 1024 * 1024)
+
+
+# --------------------------------------------------------------------------- read
+
+
+class CsvReadError(Exception):
+    pass
+
+
+def _resolve_delimiter(raw: str) -> str:
+    aliases = {"tab": "\t", "\\t": "\t", "semicolon": ";", "pipe": "|", "comma": ","}
+    d = aliases.get(raw, raw)
+    if len(d) != 1:
+        raise CsvReadError(f"--delimiter must resolve to exactly one character, got {raw!r}")
+    return d
+
+
+def read_csv(path, delimiter=",", encoding="utf-8-sig", naive=False):
+    """Parse one CSV and return a dict of measurements, columns, notes and rows.
+
+    naive=True disables every quirk fix (no skipinitialspace, no stripping of header
+    keys or cell values). It exists to show what a careless read WOULD have returned --
+    use it to tell an instrument problem apart from a data problem, not to get real
+    numbers.
+    """
+    try:
+        with open(path, "rb") as fh:
+            raw = fh.read()
+    except OSError as exc:
+        raise CsvReadError(f"cannot read {path}: {exc}") from exc
+
+    bom = raw.startswith(codecs.BOM_UTF8)
+    try:
+        text = raw.decode(encoding)
+    except UnicodeDecodeError as exc:
+        raise CsvReadError(f"cannot decode {path} as {encoding}: {exc}") from exc
+
+    # Physical lines, counted so that a final line WITHOUT a trailing newline still
+    # counts. (`wc -l` counts newline characters and undercounts such a file by one.)
+    lines = text.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    physical_lines = len(lines)
+    # .strip() so a bare CR left by CRLF endings reads as blank, as it should.
+    # (`grep -c .` counts such a line as non-blank -- it sees the \r as a character.)
+    non_blank_lines = sum(1 for line in lines if line.strip())
+    crlf = "\r\n" in text
+
+    reader = csv.reader(
+        io.StringIO(text, newline=""),
+        delimiter=delimiter,
+        skipinitialspace=not naive,
+    )
+
+    records = []  # (end_line_number, fields)
+    prev_line = 0
+    try:
+        for fields in reader:
+            records.append((prev_line + 1, fields))
+            prev_line = reader.line_num
+    except csv.Error as exc:
+        raise CsvReadError(f"{path}: CSV parse error near line {reader.line_num}: {exc}") from exc
+
+    if not records:
+        raise CsvReadError(f"{path} is empty -- no header row")
+
+    header_line, header_fields = records[0]
+    raw_columns = list(header_fields)
+    columns = raw_columns if naive else [c.strip() for c in raw_columns]
+    header_padded = any(c != c.strip() for c in raw_columns)
+    width = len(columns)
+
+    dupe_columns = sorted(name for name, n in Counter(columns).items() if n > 1)
+
+    rows = []
+    notes = []
+    blank_records = 0
+    values_padded = False
+    for line_no, fields in records[1:]:
+        if not fields or (len(fields) <= 1 and all(f.strip() == "" for f in fields)):
+            blank_records += 1
+            continue
+        if len(fields) == width:
+            if not naive:
+                if any(f != f.strip() for f in fields):
+                    values_padded = True
+                fields = [f.strip() for f in fields]
+            rows.append(OrderedDict(zip(columns, fields)))
+        else:
+            notes.append(
+                {
+                    "line": line_no,
+                    "fields": len(fields),
+                    "text": lines[line_no - 1].rstrip("\r") if line_no <= len(lines) else "",
+                }
+            )
+
+    return {
+        "path": os.path.abspath(path),
+        "name": os.path.basename(path),
+        "encoding": encoding,
+        "bom": bom,
+        "crlf_line_endings": crlf,
+        "delimiter": delimiter,
+        "naive": naive,
+        "header_cells_were_padded": header_padded,
+        "cell_values_were_padded": values_padded,
+        "duplicate_column_names": dupe_columns,
+        "columns": columns,
+        "counts": {
+            "physical_lines": physical_lines,
+            "non_blank_lines": non_blank_lines,
+            "records_parsed": len(records),
+            "header_rows": 1,
+            "header_columns": width,
+            "data_rows": len(rows),
+            "non_conforming_lines": len(notes),
+            "blank_records": blank_records,
+        },
+        "notes": notes,
+        "rows": rows,
+    }
+
+
+# ----------------------------------------------------------------------- analysis
+
+
+def require_columns(result, names):
+    missing = [n for n in names if n not in result["columns"]]
+    if missing:
+        raise CsvReadError(
+            "no such column(s) in {}: {}\navailable columns ({}): {}".format(
+                result["name"],
+                ", ".join(repr(m) for m in missing),
+                len(result["columns"]),
+                ", ".join(result["columns"]),
+            )
+        )
+
+
+def distinct_report(result, column):
+    require_columns(result, [column])
+    values = [r[column] for r in result["rows"]]
+    non_empty = [v for v in values if v.strip() != ""]
+    counts = Counter(non_empty)
+    duplicates = [(v, n) for v, n in counts.most_common() if n > 1]
+    return {
+        "column": column,
+        "data_rows": len(values),
+        "blank_values": len(values) - len(non_empty),
+        "distinct_values": len(counts),
+        "duplicated_values": [{"value": v, "rows": n} for v, n in duplicates],
+    }
+
+
+def group_report(result, columns):
+    require_columns(result, columns)
+    counts = Counter(tuple(r[c] for c in columns) for r in result["rows"])
+    return {
+        "columns": columns,
+        "groups": len(counts),
+        "data_rows": len(result["rows"]),
+        "counts": [
+            {"key": list(k), "rows": n}
+            for k, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        ],
+    }
+
+
+# -------------------------------------------------------------------------- print
+
+
+def print_report(result, distincts, groups, show_columns, out):
+    c = result["counts"]
+    w = out.write
+    w("{}\n".format(result["path"]))
+
+    flags = []
+    if result["bom"]:
+        flags.append("UTF-8 BOM stripped")
+    if result["crlf_line_endings"]:
+        flags.append("CRLF line endings")
+    if result["header_cells_were_padded"]:
+        flags.append("header cells were space-padded (keys stripped)")
+    if result["cell_values_were_padded"]:
+        flags.append("cell values were space-padded (values stripped)")
+    if result["naive"]:
+        flags.append("NAIVE MODE: quirk handling disabled, numbers are diagnostic only")
+    if result["duplicate_column_names"]:
+        flags.append("duplicate column names: " + ", ".join(result["duplicate_column_names"]))
+    for f in flags:
+        w("  ! {}\n".format(f))
+
+    w("  {:<22}{:>7}  {}\n".format("physical lines", c["physical_lines"],
+                                   "newline-separated lines, final line counted"))
+    w("  {:<22}{:>7}  {}\n".format("non-blank lines", c["non_blank_lines"], ""))
+    w("  {:<22}{:>7}  {}\n".format("records parsed", c["records_parsed"],
+                                   "= header + data rows + non-conforming + blank"))
+    w("  {:<22}{:>7}  {}\n".format("header columns", c["header_columns"],
+                                   "fields in the header row"))
+    w("  {:<22}{:>7}  {}\n".format("DATA ROWS", c["data_rows"],
+                                   "records with exactly {} fields, header excluded".format(
+                                       c["header_columns"])))
+    w("  {:<22}{:>7}  {}\n".format("non-conforming lines", c["non_conforming_lines"],
+                                   "listed below; NOT counted as data rows"))
+    w("  {:<22}{:>7}\n".format("blank records", c["blank_records"]))
+
+    if result["notes"]:
+        w("\n  non-conforming lines (verbatim -- likely appended review notes, "
+          "but read them and decide):\n")
+        for n in result["notes"]:
+            w("    line {:>5} ({} field{}): {}\n".format(
+                n["line"], n["fields"], "" if n["fields"] == 1 else "s", n["text"]))
+
+    if show_columns:
+        w("\n  columns ({}):\n".format(len(result["columns"])))
+        for i, name in enumerate(result["columns"]):
+            w("    {:>3}  {}\n".format(i, name))
+
+    for d in distincts:
+        w("\n  distinct values in '{}': {} distinct / {} data rows".format(
+            d["column"], d["distinct_values"], d["data_rows"]))
+        if d["blank_values"]:
+            w(" ({} blank)".format(d["blank_values"]))
+        w("\n")
+        if d["duplicated_values"]:
+            w("    {} value(s) appear on more than one row:\n".format(
+                len(d["duplicated_values"])))
+            for dv in d["duplicated_values"]:
+                w("      {:>4} row{}  {}\n".format(
+                dv["rows"], " " if dv["rows"] == 1 else "s", dv["value"]))
+        elif d["data_rows"] and d["distinct_values"] == d["data_rows"]:
+            w("    every data row has a distinct value (no duplicates)\n")
+
+    for g in groups:
+        w("\n  grouped by {}: {} group{} / {} data rows\n".format(
+            " x ".join(g["columns"]), g["groups"],
+            "" if g["groups"] == 1 else "s", g["data_rows"]))
+        for item in g["counts"]:
+            w("    {:>4} row{}  {}\n".format(
+                item["rows"], " " if item["rows"] == 1 else "s", " | ".join(item["key"])))
+
+
+TABLE_HEADERS = ["lines", "non-blank", "records", "cols", "DATA ROWS", "notes", "blank"]
+TABLE_KEYS = ["physical_lines", "non_blank_lines", "records_parsed", "header_columns",
+              "data_rows", "non_conforming_lines", "blank_records"]
+
+
+def print_table(results, out, name_width=None):
+    names = [r["name"] if "name" in r else r["path"] for r in results]
+    nw = name_width or max([len(n) for n in names] + [4])
+    out.write("{:<{nw}}  {}\n".format("file", "  ".join(
+        "{:>9}".format(h) for h in TABLE_HEADERS), nw=nw))
+    out.write("{}\n".format("-" * (nw + 2 + 11 * len(TABLE_HEADERS))))
+    for r, n in zip(results, names):
+        out.write("{:<{nw}}  {}\n".format(n, "  ".join(
+            "{:>9}".format(r["counts"][k]) for k in TABLE_KEYS), nw=nw))
+    out.write("\nunits: lines = newline-separated physical lines (final line counted; "
+              "`wc -l` undercounts a file with no trailing newline).\n"
+              "       records = everything csv parsed = header + data rows + notes + blank.\n"
+              "       DATA ROWS = records with exactly as many fields as the header. "
+              "This is the number you mean when you say 'rows'.\n"
+              "       notes = non-conforming lines, listed per file with --report.\n")
+
+
+# --------------------------------------------------------------------------- main
+
+
+EPILOG = """\
+counts, and what each one means
+  physical lines        newline-separated lines; a final line with no trailing
+                        newline still counts (`wc -l` would undercount it by one)
+  non-blank lines       physical lines with any non-whitespace (a bare CR is blank)
+  records parsed        everything the CSV parser returned, header included
+  header columns        fields in the header row
+  data rows             records with exactly as many fields as the header, header
+                        excluded -- this is what you mean when you say "rows"
+  non-conforming lines  records of any other width, listed verbatim; on a
+                        hand-annotated file these are usually appended review notes
+  blank records         empty lines
+
+examples
+  csv-measure run.csv
+  csv-measure run.csv --distinct permutation_id
+  csv-measure run.csv --group cluster_name,consideration_name,brand
+  csv-measure output/*.csv --table
+  csv-measure run.csv --rows-json | jq '.[0]'
+  csv-measure run.csv --naive          # what a careless read would have said
+
+Column names are always arguments. This tool has no idea what your columns are
+called and never assumes.
+"""
+
+
+def build_parser():
+    p = argparse.ArgumentParser(
+        prog="csv-measure",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=(
+            "Measure a CSV and report every count with its unit. Handles a UTF-8 BOM, "
+            "hand-aligned space padding (in cells AND in header names), and appended "
+            "human review notes -- the traps that otherwise make a file read as empty, "
+            "over-wide, or silently short. Standard library only."),
+        epilog=EPILOG,
+    )
+    p.add_argument("path", nargs="+", help="CSV file(s) to measure")
+    p.add_argument("-D", "--distinct", metavar="COLUMN", action="append", default=[],
+                   help="count distinct values in COLUMN (repeatable). Catches a "
+                        "silent duplicate in a key column.")
+    p.add_argument("-g", "--group", metavar="COLUMN[,COLUMN...]", action="append", default=[],
+                   help="group data rows by one or more columns and count each group "
+                        "(repeatable)")
+    p.add_argument("--columns", action="store_true", help="list the header column names")
+    p.add_argument("--table", action="store_true",
+                   help="one summary line per file (the default when several files "
+                        "are given)")
+    p.add_argument("--report", action="store_true",
+                   help="force the full per-file report even for several files")
+    p.add_argument("--json", action="store_true",
+                   help="emit the full result as JSON (counts, columns, notes, rows)")
+    p.add_argument("--rows-json", action="store_true",
+                   help="emit only the parsed data rows as a JSON array of objects, so "
+                        "other tooling need not re-implement any of this")
+    p.add_argument("-d", "--delimiter", default=",",
+                   help="field delimiter (default ','; accepts 'tab', 'semicolon', 'pipe')")
+    p.add_argument("--encoding", default="utf-8-sig",
+                   help="text encoding (default utf-8-sig, which strips a BOM if present)")
+    p.add_argument("--naive", action="store_true",
+                   help="DIAGNOSTIC: turn the quirk handling off (no skipinitialspace, "
+                        "no stripping of header keys or values) to see what a careless "
+                        "read returns")
+    p.add_argument("--version", action="version", version="csv-measure " + VERSION)
+    return p
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+
+    try:
+        delimiter = _resolve_delimiter(args.delimiter)
+    except CsvReadError as exc:
+        print("csv-measure: {}".format(exc), file=sys.stderr)
+        return 2
+
+    group_specs = [[c.strip() for c in g.split(",") if c.strip()] for g in args.group]
+    group_specs = [g for g in group_specs if g]
+
+    results = []
+    failures = 0
+    for path in args.path:
+        try:
+            results.append(read_csv(path, delimiter=delimiter,
+                                    encoding=args.encoding, naive=args.naive))
+        except CsvReadError as exc:
+            print("csv-measure: {}".format(exc), file=sys.stderr)
+            failures += 1
+    if not results:
+        return 1
+
+    if args.rows_json:
+        payload = results[0]["rows"] if len(results) == 1 else \
+            {r["path"]: r["rows"] for r in results}
+        json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
+        sys.stdout.write("\n")
+        return 1 if failures else 0
+
+    try:
+        analyses = [
+            ([distinct_report(r, c) for c in args.distinct],
+             [group_report(r, g) for g in group_specs])
+            for r in results
+        ]
+    except CsvReadError as exc:
+        print("csv-measure: {}".format(exc), file=sys.stderr)
+        return 2
+
+    if args.json:
+        payload = []
+        for r, (dists, grps) in zip(results, analyses):
+            item = dict(r)
+            if dists:
+                item["distinct"] = dists
+            if grps:
+                item["groups"] = grps
+            payload.append(item)
+        json.dump(payload[0] if len(payload) == 1 else payload, sys.stdout,
+                  ensure_ascii=False, indent=2)
+        sys.stdout.write("\n")
+        return 1 if failures else 0
+
+    as_table = args.table or (len(results) > 1 and not args.report
+                              and not args.distinct and not group_specs
+                              and not args.columns)
+    if as_table:
+        print_table(results, sys.stdout)
+    else:
+        for i, (r, (dists, grps)) in enumerate(zip(results, analyses)):
+            if i:
+                sys.stdout.write("\n")
+            print_report(r, dists, grps, args.columns, sys.stdout)
+
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except BrokenPipeError:
+        os._exit(0)
+    except KeyboardInterrupt:
+        sys.exit(130)

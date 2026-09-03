@@ -23,15 +23,15 @@ Read status, next steps, linked `project-doc`s, recent Changelog, `last_pulse`.
 
 ## 3. Re-verify the CHEAP baselines — never the expensive ones
 
-A `.tmp` states numbers as of when it was written; a stale one travels into the briefing as current fact (04-08: a wrong "23/43" went from a `.tmp` into a subagent brief and was only caught by that agent's own measurement). So re-measure the cheap ones instead of restating them — **issue them as parallel tool calls in the same message as reading the note**, where the marginal cost is ~0. Measured 05-08: `judges.test_offline` **3.22s**, `test_pipeline_offline` **0.15s**, CSV row count + git ahead/behind + HEAD **0.23s** — ~3.6s total.
+A `.tmp` states numbers as of when it was written; a stale one travels into the briefing as current fact (04-08: a wrong "23/43" went from a `.tmp` into a subagent brief and was only caught by that agent's own measurement). So re-measure the cheap ones instead of restating them — **issue them as parallel tool calls in the same message as reading the note**, where the marginal cost is ~0 (05-08: the whole set, ~3.6s).
 
-Cheap = offline test suites, row/line counts, md5s, file existence, git state. **Nothing that touches the network.**
+Cheap = offline test suites, row/line counts, md5s, file existence, git state. **Nothing that touches the network.** For any CSV count run `~/.claude/bin/csv-measure <path>` — it names the unit of every number it prints.
 
-⚠️ **Never re-verify an expensive baseline at resume.** Anything needing model draws (a judge probe at n=12, a generation run, a stability grid) costs real spend and minutes. Carry those forward **labelled with provenance** instead — *"measured 05-08, n=12, not re-verified this session"* — which closes the stale-number failure without paying to re-measure.
+⚠️ **Never re-verify an expensive baseline at resume.** Anything needing model draws (a judge probe at n=12, a generation run, a stability grid) costs real spend and minutes. Carry those forward **labelled with provenance** — *"measured 05-08, n=12, not re-verified this session"* — and **check the source's rebuild cadence**: if it rebuilds faster than the number is old, re-measure or drop the claim (08-10: a correctly dated 13-day-old count off a daily-rebuilt BigQuery view still travelled into two arguments and a peer's report as current fact).
 
-⚠️ **Labelling alone does not make a carried number safe — check the source's rebuild cadence.** If the source rebuilds on a schedule shorter than the number's age, re-measure or drop the claim (08-10: a correctly dated 13-day-old count off a daily-rebuilt BigQuery view still travelled into two arguments and a peer's report as current fact).
+⚠️ **When a cheap check returns a surprising all-or-nothing result** — every field empty, zero hits — **suspect the instrument before the data**, and prove the measurement can see anything at all before reporting a finding.
 
-ⓘ Honest about what this buys: on 05-08 it confirmed two baselines and caught nothing. It is cheap insurance against a stale `.tmp`, not a bug-finder — and it does **not** catch a threshold that was wrong the first time it was written (that belongs to whoever wrote it).
+ⓘ Honest about what this buys: on 05-08 it confirmed two baselines and caught nothing. Cheap insurance against a stale `.tmp`, not a bug-finder — and it does **not** catch a threshold that was wrong when first written.
 
 ## 4. Append a "FROM THE VAULT" section to the briefing
 
