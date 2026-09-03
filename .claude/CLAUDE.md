@@ -1,7 +1,7 @@
 # Global instructions
 
 ## Working with code
-- Before answering a question about the **state of the codebase** (what exists where, what's merged, what's promoted to which environment, what a teammate has done), **sync the local checkout with upstream first** — the working tree is often stale. Use the repo's sync command (`git sync-upstream` where a fork+upstream workflow exists, otherwise `git fetch` + `git pull --rebase`), with the sandbox disabled. Skip only for questions purely about your own uncommitted changes.
+- Before answering a question about the **state of the codebase** (what exists where, what's merged, what's promoted to which environment, what a teammate has done), **sync the local checkout with upstream first** — the working tree is often stale. Use the repo's sync command, with the sandbox disabled: `git fetch upstream <branch>:<branch>` where a fork+upstream workflow exists, otherwise `git fetch` + `git pull --rebase`. Skip only for questions purely about your own uncommitted changes. **Never reach for `git sync-upstream` off `main`** — the alias rebases whatever is checked out and ends in `git push -f`.
 
 ## Shell commands (zsh eval environment)
 Every Bash-tool command and slash-command `!`-preamble is eval'd through a snapshot of the interactive zsh config (Oh My Zsh aliases live, `extendedglob` on). Investigated 2026-07-20; upstream refs: claude-code#16163, #67146, #61121.
@@ -29,6 +29,25 @@ but the attempts are the signal that a branch is occupied.
   `git log --oneline origin/<branch>..HEAD` first, and prefer `--force-with-lease` over `--force`.
 - **Tell agents in their brief** that "already checked out" means an occupied branch, and that they
   must report a git-state block rather than work around it destructively.
+
+### The same exclusivity applies to contended singleton tools
+
+A tool holding **one global session** is as exclusive as a branch, and it fails far more quietly.
+`playwright-cli` drives a single persistent browser: on 2026-09-03 two concurrent agents used it, one
+agent's `navigate` silently overrode the other's, and the loser screenshotted a tab it had never
+opened — believing its own render had failed. Nothing errored. The tell was an `eval` returning a
+value that agent had never set: a `document.title` it did not write, and a `location.href` naming a
+file it did not create.
+
+- **Treat one-session tools as exclusive** — a browser, a fixed devserver port, a REPL, a named tmux
+  pane. Serialise agents across them, or give each its own instance.
+- **Verify identity in the result; do not trust the call.** Have the agent stamp something only it
+  could know and assert it comes back. A screenshot is not evidence that *your* page rendered.
+- **Prefer an offline check where one exists** — the loser here validated its Mermaid diagrams with
+  the parser via bun + jsdom and needed no browser at all.
+- **File-level disjointness is not isolation either** (2026-09-03, same session): two agents on
+  genuinely different files still collide through a shared *caller*, and a half-applied signature
+  change breaks everything downstream. Serialise when one agent changes a signature others call.
 
 <!-- Company-specific instructions live in a private repo (FrancisBehnen/dotfiles-private) and
      are imported below. On a public-only clone this file may be absent; scripts/setup.sh creates
