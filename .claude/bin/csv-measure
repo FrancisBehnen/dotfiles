@@ -22,6 +22,12 @@ plausible-looking wrong number, and argues about it. This bakes them in once:
      records != full-width data rows != distinct values in a key column. Every number
      this tool prints carries its unit, so a number lifted out of it into an argument
      carries the unit with it.
+  6. A number is usually being CHECKED     -> the caller nearly always already holds a
+     number a previous session asserted, and wants to know whether it still holds.
+     Comparing the printed number by eye is the step that lets a stale "23/43" travel
+     into a brief. --expect turns that comparison into an exit status, and --digest
+     gives a file-level baseline that an md5 cannot, because these files are
+     hand-aligned and annotated between sessions while the data is identical.
 
 Nothing here is specific to any one pipeline: column names are always arguments,
 never defaults. Python standard library only, so it runs with no venv.
@@ -32,13 +38,14 @@ from __future__ import annotations
 import argparse
 import codecs
 import csv
+import hashlib
 import io
 import json
 import os
 import sys
 from collections import Counter, OrderedDict
 
-VERSION = "1.0"
+VERSION = "1.1"
 
 # csv.field_size_limit defaults to 128 KiB; long generated text fields exceed it.
 csv.field_size_limit(16 * 1024 * 1024)
@@ -211,10 +218,267 @@ def group_report(result, columns):
     }
 
 
+# ------------------------------------------------------------------------- digest
+
+# Bumped only when the normalisation below changes, so an old digest in a session file
+# fails loudly against a new algorithm instead of silently comparing unequal things.
+DIGEST_VERSION = "csvm1"
+
+
+def content_digest(result):
+    """sha256 over the parsed DATA ROWS only, normalised -- a file md5 that survives review.
+
+    A plain md5 of these files is useless: they are hand-aligned and get review notes
+    appended between sessions, so the bytes change on every pass while the pipeline
+    output is identical. This hashes the DATA, not the file:
+
+      in  (changes the digest)   cell values, the set of column NAMES, how many rows,
+                                 which rows
+      out (does not)             UTF-8 BOM, CRLF vs LF, a trailing newline, column
+                                 alignment padding, appended non-conforming note lines,
+                                 blank lines, ROW ORDER, COLUMN ORDER
+
+    Row order is deliberately NOT part of the identity. The digest answers "is this the
+    same data?", and every documented edit Francis makes to these files is a layout
+    edit -- aligning columns, appending notes, sorting a scratchpad in a spreadsheet. A
+    digest that a sort breaks would fail on exactly the case it exists to survive. The
+    pipeline's write order is deterministic, and where order carries meaning it is also
+    in the data (rank, permutation_id), so an order-only change is recoverable from the
+    rows themselves rather than from their sequence. Column order is excluded for the
+    same reason and by the same principle: identity is the content, not the layout.
+    Duplicate rows still count -- rows are hashed as a multiset, not a set.
+    """
+    row_hashes = sorted(
+        hashlib.sha256(
+            json.dumps(dict(row), ensure_ascii=False, sort_keys=True,
+                       separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        for row in result["rows"]
+    )
+    h = hashlib.sha256()
+    h.update(("csv-measure/{}\ncolumns:{}\nrows:{}\n".format(
+        DIGEST_VERSION,
+        json.dumps(sorted(result["columns"]), ensure_ascii=False, separators=(",", ":")),
+        len(row_hashes))).encode("utf-8"))
+    for rh in row_hashes:
+        h.update((rh + "\n").encode("ascii"))
+    return "{}:{}".format(DIGEST_VERSION, h.hexdigest())
+
+
+# ------------------------------------------------------------------------- expect
+
+# expectation key -> (counts key, the unit as printed in the report)
+EXPECT_COUNT_KEYS = OrderedDict([
+    ("rows", ("data_rows", "data rows")),
+    ("cols", ("header_columns", "header columns")),
+    ("notes", ("non_conforming_lines", "non-conforming lines")),
+    ("blank", ("blank_records", "blank records")),
+    ("lines", ("physical_lines", "physical lines")),
+    ("non-blank", ("non_blank_lines", "non-blank lines")),
+    ("records", ("records_parsed", "records parsed")),
+])
+
+EXPECT_KEY_HELP = (
+    "known keys: " + ", ".join(EXPECT_COUNT_KEYS) +
+    ", distinct:COLUMN, groups:COLUMN[+COLUMN...], digest"
+)
+
+
+def parse_expectations(specs):
+    """['rows=45,cols=22'] -> [(key, kind, param, expected)]. Raises on anything unknown.
+
+    An unknown key is an error, never a silently skipped check: a false pass here is
+    worse than a false fail, because it is the thing the caller is trusting.
+    """
+    out = []
+    seen = set()
+    for spec in specs:
+        for pair in spec.split(","):
+            pair = pair.strip()
+            if not pair:
+                continue
+            if "=" not in pair:
+                raise CsvReadError(
+                    "--expect item {!r} is not KEY=VALUE.\n{}".format(pair, EXPECT_KEY_HELP))
+            key, value = (p.strip() for p in pair.split("=", 1))
+            if not key:
+                raise CsvReadError("--expect item {!r} has an empty key.\n{}".format(
+                    pair, EXPECT_KEY_HELP))
+            if key in seen:
+                raise CsvReadError("--expect key {!r} given more than once".format(key))
+            seen.add(key)
+
+            if key in EXPECT_COUNT_KEYS:
+                kind, param = "count", EXPECT_COUNT_KEYS[key][0]
+            elif key.startswith("distinct:"):
+                kind, param = "distinct", key[len("distinct:"):].strip()
+                if not param:
+                    raise CsvReadError("--expect {!r} names no column".format(key))
+            elif key.startswith("groups:"):
+                kind = "groups"
+                param = [c.strip() for c in key[len("groups:"):].split("+") if c.strip()]
+                if not param:
+                    raise CsvReadError("--expect {!r} names no columns".format(key))
+            elif key == "digest":
+                kind, param = "digest", None
+            else:
+                raise CsvReadError("unknown --expect key {!r}.\n{}".format(key, EXPECT_KEY_HELP))
+
+            if kind == "digest":
+                if not value:
+                    raise CsvReadError("--expect digest= needs a digest value")
+                expected = value
+            else:
+                try:
+                    expected = int(value)
+                except ValueError:
+                    raise CsvReadError(
+                        "--expect {}={!r} must be a whole number".format(key, value)) from None
+            out.append((key, kind, param, expected))
+    if not out:
+        raise CsvReadError("--expect was given nothing to check.\n" + EXPECT_KEY_HELP)
+    return out
+
+
+def evaluate_expectations(result, expectations):
+    """Measure each expectation against one file. A missing column raises (exit 2)."""
+    checks = []
+    for key, kind, param, expected in expectations:
+        if kind == "count":
+            measured = result["counts"][param]
+            unit = next(u for k, (ck, u) in EXPECT_COUNT_KEYS.items() if ck == param)
+        elif kind == "distinct":
+            measured = distinct_report(result, param)["distinct_values"]
+            unit = "distinct values in '{}'".format(param)
+        elif kind == "groups":
+            measured = group_report(result, param)["groups"]
+            unit = "groups of {}".format(" x ".join(param))
+        else:
+            measured = content_digest(result)
+            unit = "digest of the parsed data rows"
+        checks.append({"key": key, "unit": unit, "expected": expected,
+                       "measured": measured, "ok": measured == expected})
+    return checks
+
+
+def print_expectations(result, checks, out):
+    out.write("{}\n".format(result["path"]))
+    width = max(len(c["key"]) for c in checks)
+    for c in checks:
+        if c["ok"]:
+            out.write("  PASS  {:<{w}}  {}  ({})\n".format(
+                c["key"], c["measured"], c["unit"], w=width))
+        else:
+            out.write("  FAIL  {:<{w}}  expected {}, measured {}  ({})\n".format(
+                c["key"], c["expected"], c["measured"], c["unit"], w=width))
+    failed = [c for c in checks if not c["ok"]]
+    out.write("  {}: {} of {} expectation{} {}\n".format(
+        "FAIL" if failed else "PASS",
+        len(failed) if failed else len(checks), len(checks),
+        "" if len(checks) == 1 else "s",
+        "not met" if failed else "met"))
+    return not failed
+
+
+# ----------------------------------------------------------------------- selftest
+
+# The digest's whole value is that a stored baseline stays comparable. A refactor that
+# quietly changes the normalisation would break every baseline ever written down, so the
+# claims are pinned here: `csv-measure --selftest`, no pytest, no fixtures on disk.
+SELFTEST_GOLDEN = "csvm1:ad27061b4e153f8e7f3800d61c6465b513a58b9db8dcdc415b1aed68c1203766"
+
+_SELFTEST_ROWS = [
+    ["id", "brand", "sentence"],
+    ["1", "Intel", "Werk aan meer dingen tegelijk, zonder haperen."],
+    ["2", "AMD", 'Een "snellere" chip, met komma, in de tekst.'],
+    ["3", "Intel", "Ünïcode en trailing spaces."],
+]
+
+
+def _selftest_files(tmpdir):
+    """Same three data rows, written the many ways these files actually turn up."""
+    import os as _os
+
+    def w(name, text, bom=False, encoding="utf-8"):
+        path = _os.path.join(tmpdir, name)
+        data = text.encode(encoding)
+        if bom:
+            data = codecs.BOM_UTF8 + data
+        with open(path, "wb") as fh:
+            fh.write(data)
+        return path
+
+    def serialise(rows, sep=",", pad=0, newline="\n"):
+        widths = [max(len(r[i]) for r in rows) + pad for i in range(len(rows[0]))]
+        out = []
+        for r in rows:
+            cells = []
+            for i, cell in enumerate(r):
+                q = '"{}"'.format(cell.replace('"', '""')) if (
+                    sep in cell or '"' in cell) else cell
+                cells.append(q.rjust(widths[i]) if pad else q)
+            out.append(sep.join(cells))
+        return newline.join(out) + newline
+
+    rows = _SELFTEST_ROWS
+    plain = w("plain.csv", serialise(rows))
+    aligned = w("aligned.csv",
+                serialise(rows, pad=3, newline="\r\n") + "- reviewer note\r\n- another\r\n",
+                bom=True)
+    no_trailing = w("no_trailing.csv", serialise(rows).rstrip("\n"))
+    reordered = w("reordered.csv", serialise([rows[0]] + [rows[3], rows[1], rows[2]]))
+    cols_reordered = w("cols_reordered.csv",
+                       serialise([[r[2], r[0], r[1]] for r in rows]))
+    changed = w("changed.csv", serialise(
+        [rows[0], rows[1], rows[2], [rows[3][0], rows[3][1], rows[3][2] + "!"]]))
+    dropped = w("dropped.csv", serialise(rows[:3]))
+    renamed = w("renamed.csv", serialise([["id", "merk", "sentence"]] + rows[1:]))
+    return {"plain": plain, "aligned": aligned, "no_trailing": no_trailing,
+            "reordered": reordered, "cols_reordered": cols_reordered,
+            "changed": changed, "dropped": dropped, "renamed": renamed}
+
+
+def selftest(out):
+    import tempfile
+
+    failures = []
+    with tempfile.TemporaryDirectory(prefix="csv-measure-selftest-") as tmp:
+        paths = _selftest_files(tmp)
+        dg = {k: content_digest(read_csv(p)) for k, p in paths.items()}
+
+        def check(label, ok, detail=""):
+            out.write("  {}  {}{}\n".format("PASS" if ok else "FAIL", label,
+                                            "" if ok else "  -- " + detail))
+            if not ok:
+                failures.append(label)
+
+        base = dg["plain"]
+        for k, why in [("aligned", "BOM + CRLF + alignment padding + appended notes"),
+                       ("no_trailing", "no trailing newline"),
+                       ("reordered", "data rows in a different order"),
+                       ("cols_reordered", "columns in a different order")]:
+            check("stable across {}".format(why), dg[k] == base,
+                  "{} != {}".format(dg[k], base))
+        for k, why in [("changed", "one cell changed"),
+                       ("dropped", "one row removed"),
+                       ("renamed", "one column renamed")]:
+            check("sensitive to {}".format(why), dg[k] != base, "digest did not move")
+
+        check("counts on the annotated variant (3 rows, 3 cols, 2 notes)",
+              [read_csv(paths["aligned"])["counts"][k]
+               for k in ("data_rows", "header_columns", "non_conforming_lines")] == [3, 3, 2])
+        check("golden digest unchanged (bump DIGEST_VERSION if this moves on purpose)",
+              base == SELFTEST_GOLDEN, "now {}".format(base))
+
+    out.write("  {}: {} check(s) failed\n".format("FAIL", len(failures)) if failures
+              else "  PASS: every check held\n")
+    return not failures
+
+
 # -------------------------------------------------------------------------- print
 
 
-def print_report(result, distincts, groups, show_columns, out):
+def print_report(result, distincts, groups, show_columns, out, digest=None):
     c = result["counts"]
     w = out.write
     w("{}\n".format(result["path"]))
@@ -250,6 +514,10 @@ def print_report(result, distincts, groups, show_columns, out):
         "listed below; NOT counted as data rows" if c["non_conforming_lines"]
         else "every record is header-width"))
     w("  {:<22}{:>7}\n".format("blank records", c["blank_records"]))
+
+    if digest:
+        w("  {:<22}{}  {}\n".format("digest", digest,
+                                    "data rows only; layout-independent"))
 
     if result["notes"]:
         w("\n  non-conforming lines (verbatim -- likely appended review notes, "
@@ -325,6 +593,36 @@ counts, and what each one means
                         hand-annotated file these are usually appended review notes
   blank records         empty lines
 
+--expect: assert a carried number instead of eyeballing it
+  Exit 0 = every expectation met, 1 = at least one mismatch (each printed as
+  expected vs measured), 2 = the expectation itself is bad: an unknown key, a
+  non-numeric value, or a column that does not exist. Never a silent pass.
+
+    rows=N              data rows            notes=N     non-conforming lines
+    cols=N              header columns       blank=N     blank records
+    lines=N             physical lines       records=N   records parsed
+    non-blank=N         non-blank lines
+    distinct:COLUMN=N   distinct non-empty values in COLUMN
+    groups:A+B+C=N      distinct groups of columns A, B, C  ('+', not ',',
+                        because ',' already separates expectations)
+    digest=csvm1:...    the --digest value, matched exactly
+
+  With several files each file is checked separately and reported by path; the
+  exit status is non-zero if ANY file fails. That makes `csv-measure out/*.csv
+  --expect cols=22` a schema assertion over a set, and keeps a failure attributed
+  to the file that caused it.
+
+--digest: the md5 substitute for a file that gets hand-edited
+  sha256 over the parsed DATA ROWS only, normalised. Stable across: BOM or no BOM,
+  CRLF or LF, column alignment padding, appended review-note lines, a trailing
+  newline, ROW ORDER and COLUMN ORDER. Sensitive to: any cell value, a row added or
+  removed (duplicates count -- rows hash as a multiset), a column added, removed or
+  renamed. Row order is not part of the identity because every documented edit to
+  these files is a layout edit, sorting a scratchpad in a spreadsheet included, and
+  a digest a sort breaks fails on the case it exists to survive; where order carries
+  meaning it is also in the data (rank, permutation_id). Alone it prints just the
+  digest per file; with --report or --expect it joins that output.
+
 examples
   csv-measure run.csv
   csv-measure run.csv --distinct permutation_id
@@ -332,6 +630,10 @@ examples
   csv-measure output/*.csv --table
   csv-measure run.csv --rows-json | jq '.[0]'
   csv-measure run.csv --naive          # what a careless read would have said
+  csv-measure run.csv --digest
+  csv-measure run.csv --expect rows=45,cols=22,distinct:permutation_id=45
+  csv-measure run.csv --expect digest=csvm1:1a2b3c...   # strongest drift check
+  csv-measure clean.csv scratchpad.csv --digest         # same data, different bytes?
 
 Column names are always arguments. This tool has no idea what your columns are
 called and never assumes.
@@ -356,6 +658,19 @@ def build_parser():
     p.add_argument("-g", "--group", metavar="COLUMN[,COLUMN...]", action="append", default=[],
                    help="group data rows by one or more columns and count each group "
                         "(repeatable)")
+    p.add_argument("-e", "--expect", metavar="KEY=VALUE[,KEY=VALUE...]", action="append",
+                   default=[],
+                   help="assert measurements instead of printing them: exit 0 if every "
+                        "one holds, 1 on any mismatch (printed as expected vs measured), "
+                        "2 if the expectation itself is bad. " + EXPECT_KEY_HELP +
+                        ". Repeatable; with several files each is checked separately.")
+    p.add_argument("--digest", action="store_true",
+                   help="print a sha256 over the parsed DATA ROWS only, normalised: "
+                        "unchanged by a BOM, CRLF, alignment padding, appended review "
+                        "notes, a trailing newline, row order or column order; changed by "
+                        "any cell value, row or column name. The md5 substitute for a "
+                        "file that is hand-edited between sessions. Assert it with "
+                        "--expect digest=...")
     p.add_argument("--columns", action="store_true", help="list the header column names")
     p.add_argument("--table", action="store_true",
                    help="one summary line per file (the default when several files "
@@ -375,12 +690,22 @@ def build_parser():
                    help="DIAGNOSTIC: turn the quirk handling off (no skipinitialspace, "
                         "no stripping of header keys or values) to see what a careless "
                         "read returns")
+    p.add_argument("--selftest", action="store_true",
+                   help="check the --digest stability and sensitivity claims against "
+                        "synthetic files in a temp dir, and against a frozen golden "
+                        "digest. No test framework, no fixtures, no network.")
     p.add_argument("--version", action="version", version="csv-measure " + VERSION)
     return p
 
 
 def main(argv=None):
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    if argv is None:
+        argv = sys.argv[1:]
+    if "--selftest" in argv:  # the only mode that needs no path argument
+        sys.stdout.write("csv-measure {} selftest\n".format(VERSION))
+        return 0 if selftest(sys.stdout) else 1
+    args = parser.parse_args(argv)
 
     try:
         delimiter = _resolve_delimiter(args.delimiter)
@@ -390,6 +715,16 @@ def main(argv=None):
 
     group_specs = [[c.strip() for c in g.split(",") if c.strip()] for g in args.group]
     group_specs = [g for g in group_specs if g]
+
+    # Parsed before any file is opened: a bad expectation is a bug in the caller's
+    # baseline and must be loud whatever the file turns out to say.
+    expectations = []
+    if args.expect:
+        try:
+            expectations = parse_expectations(args.expect)
+        except CsvReadError as exc:
+            print("csv-measure: {}".format(exc), file=sys.stderr)
+            return 2
 
     results = []
     failures = 0
@@ -403,12 +738,29 @@ def main(argv=None):
     if not results:
         return 1
 
+    digests = [content_digest(r) for r in results] if args.digest else [None] * len(results)
+
+    # A mismatch is exit 1 (the number moved); a bad expectation is exit 2 (the check
+    # itself is wrong, e.g. a column that does not exist) and is raised out of here.
+    all_checks = None
+    mismatches = 0
+    if expectations:
+        try:
+            all_checks = [evaluate_expectations(r, expectations) for r in results]
+        except CsvReadError as exc:
+            print("csv-measure: {}".format(exc), file=sys.stderr)
+            return 2
+        mismatches = sum(1 for checks in all_checks if any(not c["ok"] for c in checks))
+
     if args.rows_json:
         payload = results[0]["rows"] if len(results) == 1 else \
             {r["path"]: r["rows"] for r in results}
         json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
-        return 1 if failures else 0
+        if all_checks:  # stderr, so the JSON on stdout stays machine-readable
+            for r, checks in zip(results, all_checks):
+                print_expectations(r, checks, sys.stderr)
+        return 1 if failures or mismatches else 0
 
     try:
         analyses = [
@@ -422,30 +774,61 @@ def main(argv=None):
 
     if args.json:
         payload = []
-        for r, (dists, grps) in zip(results, analyses):
+        for i, (r, (dists, grps)) in enumerate(zip(results, analyses)):
             item = dict(r)
+            if digests[i]:
+                item["digest"] = digests[i]
             if dists:
                 item["distinct"] = dists
             if grps:
                 item["groups"] = grps
+            if all_checks:
+                item["expect"] = all_checks[i]
             payload.append(item)
         json.dump(payload[0] if len(payload) == 1 else payload, sys.stdout,
                   ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
+        return 1 if failures or mismatches else 0
+
+    # --digest on its own is a fingerprint command, not a report: one line per file,
+    # digest first so it can be copied or cut straight into a baseline.
+    if args.digest and not (all_checks or args.report or args.table or args.columns
+                            or args.distinct or group_specs):
+        for r, dg in zip(results, digests):
+            sys.stdout.write("{}  {}\n".format(dg, r["path"]))
+        sys.stdout.write(
+            "\ndigest = sha256 over the parsed DATA ROWS only, normalised: unaffected by "
+            "a BOM,\n        CRLF, alignment padding, appended note lines, a trailing "
+            "newline, row order or\n        column order; changed by any cell value, row, "
+            "or column name.\n")
         return 1 if failures else 0
+
+    if all_checks:
+        for i, (r, checks) in enumerate(zip(results, all_checks)):
+            if i:
+                sys.stdout.write("\n")
+            print_expectations(r, checks, sys.stdout)
+        # "assert, don't print": the report comes back only if it was asked for.
+        if not (args.report or args.table):
+            return 1 if failures or mismatches else 0
+        sys.stdout.write("\n")
 
     as_table = args.table or (len(results) > 1 and not args.report
                               and not args.distinct and not group_specs
                               and not args.columns)
     if as_table:
         print_table(results, sys.stdout)
+        if args.digest:  # the table has no room for it, but never silently drop it
+            sys.stdout.write("\n")
+            for r, dg in zip(results, digests):
+                sys.stdout.write("{}  {}\n".format(dg, r["name"]))
     else:
         for i, (r, (dists, grps)) in enumerate(zip(results, analyses)):
             if i:
                 sys.stdout.write("\n")
-            print_report(r, dists, grps, args.columns, sys.stdout)
+            print_report(r, dists, grps, args.columns, sys.stdout, digest=digests[i])
 
-    return 1 if failures else 0
+    return 1 if failures or mismatches else 0
 
 
 if __name__ == "__main__":

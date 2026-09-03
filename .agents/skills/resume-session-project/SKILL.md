@@ -27,6 +27,8 @@ A `.tmp` states numbers as of when it was written; a stale one travels into the 
 
 Cheap = offline test suites, row/line counts, md5s, file existence, git state. **Nothing that touches the network.** For any CSV count run `~/.claude/bin/csv-measure <path>` — it names the unit of every number it prints.
 
+Better than re-reading a carried CSV baseline: **assert it** — `csv-measure <path> --expect rows=45,cols=22,distinct:permutation_id=45` exits non-zero and prints expected vs measured per key, so the comparison is not done by eye. For a file that is hand-edited between sessions (aligned columns, appended review notes), its md5 changes while the data does not: use `--digest` instead, which hashes the parsed data rows only, and assert it with `--expect digest=…`.
+
 ⚠️ **Never re-verify an expensive baseline at resume.** Anything needing model draws (a judge probe at n=12, a generation run, a stability grid) costs real spend and minutes. Carry those forward **labelled with provenance** — *"measured 05-08, n=12, not re-verified this session"* — and **check the source's rebuild cadence**: if it rebuilds faster than the number is old, re-measure or drop the claim (08-10: a correctly dated 13-day-old count off a daily-rebuilt BigQuery view still travelled into two arguments and a peer's report as current fact).
 
 ⚠️ **When a cheap check returns a surprising all-or-nothing result** — every field empty, zero hits — **suspect the instrument before the data**, and prove the measurement can see anything at all before reporting a finding.
