@@ -66,8 +66,8 @@
       "Edit(~/.ssh/**)",
       "Read(~/.gnupg/**)",
       "Edit(~/.gnupg/**)",
-      "Read(/etc/**)",
-      "Edit(/etc/**)"
+      "Read(//etc/**)",
+      "Edit(//etc/**)"
     ],
     "ask": [
       "Bash(git*push*--force)",
