@@ -12,6 +12,28 @@ Every Bash-tool command and slash-command `!`-preamble is eval'd through a snaps
 - **If `!` arrives mangled as `\!`** (breaking `jq '!='`, `fixup!`, `<!DOCTYPE>`): that's Claude Code transport bug #61121, not your quoting — work around with `$'\x21'`.
 - **Bash-specific syntax** (arrays, `[[ =~ ]]` capture groups, etc.) → wrap in `bash -c '…'`.
 
+## Never `cd` into another repo — pass absolute paths
+
+Claude Code **2.1.259** tightened Bash path checking: `Read()` deny rules now cover `git diff`/`git grep`
+file operands and `cd DIR && cat FILE` compounds, and `grep -r` over a directory it cannot resolve asks.
+So a read target that is not statically resolvable after a `cd` prompts for approval whenever **any**
+`Read()` deny rule exists — and one does (`~/.ssh/**`, `~/.gnupg/**`, `/etc/**`). This is the fix working,
+not a bug: the old behaviour (permission rules bypassed by a `cd`) was claude-code#37621. It will not be
+reverted, and an allow rule cannot override it — precedence is deny → ask → allow, so `Bash(git *)` in the
+allow list does not help. Confirmed 2026-09-03 against the 2.1.259 changelog and
+`code.claude.com/docs/en/permissions`.
+
+- **Pass absolute paths and drop the `cd`** — `grep -rn "x" /Users/…/repo/src/`, never
+  `cd /Users/…/repo && grep -rn "x" src/`.
+- **For git, use `git -C <abs path> …`.** A `cd` into a *different* directory combined with `git` always
+  prompts, because running git there can execute that directory's hooks. A `cd` whose target is already
+  the session cwd is a no-op and does not prompt — which is why this only bites **cross-repo** work, and
+  why the same command is silent when the session runs inside that repo.
+- **This binds hardest on subagents.** `PreToolUse` hooks reportedly do not fire for subagent tool calls
+  (claude-code#34692, #21460), so no hook can police them. This file is the enforcement point: subagents
+  inherit `CLAUDE.md`, but not the parent session's memory and not its per-agent briefs. Observed
+  2026-09-03: "use absolute paths" in two briefs was ignored by both agents.
+
 ## Worktree-isolated subagents
 
 A branch can be checked out in only one worktree, and a **finished** agent's worktree keeps holding
