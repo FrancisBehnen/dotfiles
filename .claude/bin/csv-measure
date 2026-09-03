@@ -245,8 +245,10 @@ def print_report(result, distincts, groups, show_columns, out):
     w("  {:<22}{:>7}  {}\n".format("DATA ROWS", c["data_rows"],
                                    "records with exactly {} fields, header excluded".format(
                                        c["header_columns"])))
-    w("  {:<22}{:>7}  {}\n".format("non-conforming lines", c["non_conforming_lines"],
-                                   "listed below; NOT counted as data rows"))
+    w("  {:<22}{:>7}  {}\n".format(
+        "non-conforming lines", c["non_conforming_lines"],
+        "listed below; NOT counted as data rows" if c["non_conforming_lines"]
+        else "every record is header-width"))
     w("  {:<22}{:>7}\n".format("blank records", c["blank_records"]))
 
     if result["notes"]:
