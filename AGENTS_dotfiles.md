@@ -57,12 +57,13 @@ When asked "what transfers", answer against this map, not a raw `.claude/` file 
 
 When asked to do periodic maintenance in `~/`:
 
-1. `brew bundle dump --force --file=~/Brewfile` — sync Brewfile
+1. `brew upgrade`, then `brew bundle dump --force --file=~/Brewfile` — upgrade, then sync Brewfile (the dump only snapshots)
 2. `port installed > ~/myports` — snapshot MacPorts (if available)
 3. `port echo requested | awk '{print $1}' | sort -u > ~/requested_ports` — sync requested ports (if available)
 4. `config submodule update --remote` — update plugins/themes
-5. Check preference symlinks are intact
-6. `config diff` → review, commit, push
+5. Update agent tooling — re-running `setup.sh` never upgrades (it skips what's installed). Run the **ROUTINE** commands in README.MD → Periodic Maintenance (they cover Skillfile.private / Pluginfile.private too). Gotchas: `bunx skills update` needs **`-g`** (from `~` it otherwise updates only `~/skills-lock.json`); `claude plugin update` takes one plugin id, no update-all; never run `playwright-cli install --skills` (overwrites the locally edited playwright-cli skill). **GATED** tools — mcp2cli, nlm, and the Slack stdio MCP server — hold live credentials and are pinned to audited versions (CLIfile; the Slack server in dotfiles-private). Never upgrade them on this cycle, never `uv tool upgrade --all`, and never run `nlm skill update` on nlm 0.8.2 (it downgrades a newer nlm-skill). A bump is a re-audit first: ask the user.
+6. Check preference symlinks are intact
+7. `config diff` → review, commit, push. After step 5 expect content changes under `.agents/skills/nlm-skill/` (and any other tracked skill dir an update touched) — review them; confirm `.claude/skills/*` entries are still symlinks. `Skillfile` is hand-maintained and not rewritten by updates; `~/skills-lock.json` and `~/.agents/.skill-lock.json` do change but are tracked by neither repo, so they won't appear.
 
 ## Rules
 

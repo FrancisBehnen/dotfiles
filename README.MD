@@ -404,6 +404,9 @@ Run these steps periodically (or ask Claude Code in `~/` to do it):
 # Update Claude Code rules from upstream
 claude-sync-rules
 
+# Upgrade Homebrew packages (the dump below only snapshots, it never upgrades)
+brew upgrade
+
 # Sync Brewfile with currently installed packages
 brew bundle dump --force --file=~/Brewfile
 
@@ -413,6 +416,40 @@ port echo requested | awk '{print $1}' | sort -u > ~/requested_ports
 
 # Update Oh My Zsh plugins/themes
 config submodule update --remote
+
+# Update agent tooling. setup.sh only INSTALLS (it skips anything already
+# present), so re-running it never upgrades. Two tiers:
+#
+# ROUTINE: safe to run on every maintenance pass. Also covers the
+# Skillfile.private / Pluginfile.private entries.
+claude update                                # Claude Code itself
+claude plugin marketplace update             # refresh every marketplace
+for p in $(claude plugin list --json | jq -r '.[] | select(.scope == "user") | .id'); do
+  claude plugin update "$p"                  # no update-all flag; restart Claude after
+done
+bunx skills update -g                        # Skillfile skills. Keep -g: run from ~ the default
+                                             # scope is "project" (~/skills-lock.json) only
+npm outdated -g; bun outdated -g             # see which npm/bun globals are behind
+npm install -g ctx7@latest                   # ctx7 (what `ctx7 upgrade` runs)
+bun update -g --latest                       # defuddle + playwright-cli if bun-installed (`which
+                                             # playwright-cli`); else npm install -g @playwright/cli@latest
+playwright-cli install-browser chromium      # the Chromium build the new playwright-cli expects
+# glean CLI: covered by `brew upgrade` above (or `glean update`).
+# Don't run `playwright-cli install --skills` to silence its "skill does not match"
+# banner: the installed playwright-cli SKILL.md is locally edited and would be overwritten.
+#
+# GATED: these hold live credentials, so each is pinned to an audited version in
+# CLIfile and is deliberately NOT upgraded above. Never `uv tool upgrade` them (or
+# `uv tool upgrade --all`). To bump one: audit the new version first (audit notes live
+# in dotfiles-private), update its CLIfile line (the version appears in both the
+# verify-cmd and the install-cmd), then run that install-cmd with `--force`.
+#   mcp2cli 3.2.0  holds OAuth tokens and launches the Slack server; the Fellow CLI runs
+#                  on it. Never pass --toon on 3.2.0 (it pipes tool output into `npx`).
+#   nlm 0.8.2      holds browser session cookies. Keep its MCP server off (stdio only,
+#                  never HTTP). Don't run `nlm skill update` on 0.8.2: it overwrites a
+#                  newer nlm-skill with 0.8.2 content. Avoid --debug (it logs session data).
+#   Slack stdio MCP server: pinned and audited too; its update procedure lives in
+#                  dotfiles-private.
 
 # Check preference symlinks (BTT atomic writes can replace symlinks)
 ls -la ~/Library/Application\ Support/BetterTouchTool/btt*

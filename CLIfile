@@ -18,8 +18,14 @@
 # NOTE: one-time INTERACTIVE auth is never scripted here (e.g. `nlm auth`,
 #       `glean auth login`). This file only installs the binaries.
 
-nlm                 | nlm --version                                          | uv tool install notebooklm-mcp-cli
-mcp2cli             | mcp2cli --version                                      | uv tool install mcp2cli
+# nlm is GATED: pinned to the audited 0.8.2 (2026-09-29, SAFE-WITH-CAVEATS for CLI use; its
+# MCP server must stay off / stdio-only), with fastmcp + mcp pinned too. Bump only after
+# re-auditing; see README.MD. The verify-cmd must stay '|'-free.
+nlm                 | [ "$(nlm --version 2>/dev/null)" = "nlm version 0.8.2" ] | uv tool install 'notebooklm-mcp-cli==0.8.2' --with 'fastmcp==3.4.2' --with 'mcp==1.28.1'
+# mcp2cli is GATED: pinned to the audited 3.2.0 (2026-09-29, SAFE-WITH-CAVEATS) with its
+# mcp SDK pinned too (mcp 2.x breaks 3.2.0). Bump only after re-auditing; see README.MD.
+# No '|' allowed inside a field (it is the delimiter), hence the [ ] test.
+mcp2cli             | [ "$(mcp2cli --version 2>/dev/null)" = "mcp2cli 3.2.0" ] | uv tool install 'mcp2cli==3.2.0' --with 'mcp==1.27.2'
 ctx7                | ctx7 --version                                         | npm install -g ctx7@latest
 defuddle            | defuddle --version                                     | bun add -g defuddle
 playwright-cli      | playwright-cli --version                               | npm install -g @playwright/cli@latest
