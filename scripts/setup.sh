@@ -423,27 +423,6 @@ install_claude_code() {
       warn "Claude Code installation may have failed. Install manually: https://claude.ai/install"
     fi
   fi
-
-  # Install ECC rules
-  local ecc_dir="$HOME/Documents/Code/everything-claude-code"
-  if [[ -d "$ecc_dir" ]]; then
-    info "ECC rules repo already cloned."
-  else
-    info "Cloning everything-claude-code for extended rules..."
-    mkdir -p "$HOME/Documents/Code"
-    git clone https://github.com/affaan-m/everything-claude-code.git "$ecc_dir"
-    git -C "$ecc_dir" remote add upstream \
-      https://github.com/affaan-m/everything-claude-code.git 2>/dev/null || true
-  fi
-
-  if command_exists bun; then
-    info "Installing ECC dependencies with bun..."
-    bun install --cwd "$ecc_dir"
-    "$ecc_dir/install.sh" typescript python golang
-    info "Claude Code rules installed."
-  else
-    warn "Bun required for ECC rule installation. Run 'claude-sync-rules' later."
-  fi
 }
 
 install_copilot_cli() {

@@ -204,7 +204,7 @@ brew bundle --file=~/Brewfile
 #### Step 7: Install Node.js and Bun
 
 ```bash
-# Node.js (needed for Claude Code rules, ECC)
+# Node.js (npm/npx, used by some CLIfile tools such as ctx7)
 brew install node
 
 # Bun (fast JS runtime, used as Claude Code package manager)
@@ -257,16 +257,7 @@ The repo tracks Claude Code's portable configuration:
    curl -fsSL https://claude.ai/install.sh | sh
    ```
 2. Sign in: run `claude` and follow the prompts.
-3. Install extended rules from [everything-claude-code](https://github.com/affaan-m/everything-claude-code):
-   ```bash
-   git clone https://github.com/affaan-m/everything-claude-code.git ~/Documents/Code/everything-claude-code
-   cd ~/Documents/Code/everything-claude-code
-   git remote add upstream https://github.com/affaan-m/everything-claude-code.git
-   bun install
-   ./install.sh typescript python golang
-   ```
-   The dotfiles checkout already placed `shell.md` (our custom rule) at `~/.claude/rules/common/`; the install script adds the rest without overwriting it.
-4. Plugins restore automatically from `settings.json` via the marketplace on first launch.
+3. Plugins restore automatically from `settings.json` via the marketplace on first launch.
 
 **Migrating memory from an old machine (optional):**
 ```bash
@@ -274,11 +265,6 @@ The repo tracks Claude Code's portable configuration:
 tar czf claude-memory.tar.gz ~/.claude/projects/*/memory/
 # On new machine:
 tar xzf claude-memory.tar.gz -C /
-```
-
-**Keeping rules up-to-date:**
-```bash
-claude-sync-rules
 ```
 
 ### GitHub Copilot CLI
@@ -401,9 +387,6 @@ config submodule add https://github.com/<user>/<plugin>.git \
 Run these steps periodically (or ask Claude Code in `~/` to do it):
 
 ```bash
-# Update Claude Code rules from upstream
-claude-sync-rules
-
 # Upgrade Homebrew packages (the dump below only snapshots, it never upgrades)
 brew upgrade
 
@@ -494,19 +477,6 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ```
 Then inside tmux, press `prefix + I` to install plugins.
 
-### `claude-sync-rules` fails with "bun install failed"
-
-Bun is required, and Node.js is needed if you don't already have a compatible JS runtime available. Install them with:
-```bash
-brew install node            # Homebrew
-curl -fsSL https://bun.sh/install | bash
-
-# or
-sudo port install nodejs22   # MacPorts (admin)
-# or
-port install nodejs22        # MacPorts (non-admin ~/macports)
-```
-
 ### Submodules show as empty directories after clone
 
 Run:
@@ -556,7 +526,6 @@ requested_ports              # MacPorts requested packages snapshot
 scripts/
   setup.sh                   # Bootstrap script for new machines
   claude-mv                  # Move project + update Claude context
-  claude-sync-rules          # Sync ECC rules for Claude Code
   vintage                    # Install pinned Homebrew versions
 support_and_preference_files_to_migrate/
                              # App preference files + link script
