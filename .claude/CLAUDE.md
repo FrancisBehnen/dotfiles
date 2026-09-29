@@ -25,6 +25,9 @@ allow list does not help. Confirmed 2026-09-03 against the 2.1.259 changelog and
 
 - **Pass absolute paths and drop the `cd`** — `grep -rn "x" /Users/…/repo/src/`, never
   `cd /Users/…/repo && grep -rn "x" src/`.
+- **Never prefix `cd /dev/null`** (or any other "harmless" `cd`) to dodge the rule. The checker sees the
+  `cd` token, not its target, so `cd /dev/null; grep -rl x /abs/path` prompts exactly like a real `cd`.
+  Observed 2026-09-04 from a subagent in an unattended run. No `cd` anywhere in the command line.
 - **For git, use `git -C <abs path> …`.** A `cd` into a *different* directory combined with `git` always
   prompts, because running git there can execute that directory's hooks. A `cd` whose target is already
   the session cwd is a no-op and does not prompt — which is why this only bites **cross-repo** work, and

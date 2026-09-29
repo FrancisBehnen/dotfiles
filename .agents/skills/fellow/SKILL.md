@@ -1,6 +1,7 @@
 ---
 name: fellow
-description: Query Fellow.ai meetings, transcripts, summaries, action items, and channels directly via CLI (bypasses the claude.ai connector). THE DEFAULT ROUTE FOR ALL FELLOW ACCESS — load this before calling any mcp__claude_ai_Fellow_ai__* tool, which is fallback-only (see the Routing rule). Use whenever meeting content is needed at all: notes, what was decided/said in a meeting, who attended, action items, or a transcript — especially to pull a transcript to disk WITHOUT loading it into context. Triggers include "Fellow", "meeting transcript", "what did we decide in", "action items from", "meeting summary", and any question whose answer lives in a meeting.
+description: >-
+  Query Fellow.ai meetings, transcripts, summaries, action items, and channels directly via CLI (bypasses the claude.ai connector). THE DEFAULT ROUTE FOR ALL FELLOW ACCESS — load this before calling any mcp__claude_ai_Fellow_ai__* tool, which is fallback-only (see the Routing rule). Use whenever meeting content is needed at all: notes, what was decided/said in a meeting, who attended, action items, or a transcript — especially to pull a transcript to disk WITHOUT loading it into context. Triggers include "Fellow", "meeting transcript", "what did we decide in", "action items from", "meeting summary", and any question whose answer lives in a meeting.
 allowed-tools: Bash(bash *), Bash(*/fellow *)
 ---
 

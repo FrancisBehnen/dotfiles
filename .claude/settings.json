@@ -91,7 +91,26 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
+  "skillOverrides": {
+    "ai-service-router-migration": "off",
+    "code-review": "off",
+    "diagnosing-bugs": "off",
+    "end-to-end-analytics-pipeline": "off",
+    "find-skills": "off",
+    "prototype": "off",
+    "research": "off",
+    "resolving-merge-conflicts": "off",
+    "tdd": "off",
+    "nlm-skill": "off",
+    "plannotator-compound": "off",
+    "plannotator-last": "off",
+    "plannotator-setup-goal": "off",
+    "plannotator-visual-explainer": "off",
+    "release-plannotator": "off",
+    "obsidian-bases": "off",
+    "obsidian-markdown": "off",
+    "obsidian-cli": "off"
+  },
   "deniedMcpServers": [
     {
       "serverName": "google-cloud-bigquery"
@@ -116,21 +135,22 @@
     "command": "~/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "claude-md-management@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": false,
     "claude-obsidian@agricidaniel-claude-obsidian": true,
     "code-review@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": false,
-    "commit-commands@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": false,
     "context7@claude-plugins-official": false,
     "feature-dev@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false,
     "hookify@claude-plugins-official": false,
-    "plannotator@plannotator": true,
+    "plannotator@plannotator": false,
     "pr-review-toolkit@claude-plugins-official": false,
-    "pyright-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": false,
     "skill-creator@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": false,
-    "claudish-to-english@claudish-tts": true
+    "claudish-to-english@claudish-tts": false,
+    "glean-vnext@glean-plugins-vnext": true
   },
   "extraKnownMarketplaces": {
     "agricidaniel-claude-obsidian": {
@@ -156,8 +176,21 @@
         "source": "github",
         "repo": "FrancisBehnen/claudish-to-spoken-english"
       }
+    },
+    "obsidian-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/kepano/obsidian-skills.git"
+      }
+    },
+    "glean-plugins-vnext": {
+      "source": {
+        "source": "github",
+        "repo": "gleanwork/glean-plugins-vnext"
+      }
     }
   },
+  "outputStyle": "Concise",
   "sandbox": {
     "enabled": false,
     "allowUnsandboxedCommands": true,
@@ -234,6 +267,11 @@
     ]
   },
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
   "tui": "fullscreen",
   "voice": {
     "enabled": true,

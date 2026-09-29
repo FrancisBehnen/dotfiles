@@ -66,6 +66,7 @@ ALLOWED=(
 {
   echo "===== project-pulse run $(date '+%F %T %Z') ====="
   "$CLAUDE_BIN" -p "$PROMPT" \
+    --model opus \
     --permission-mode auto \
     --allowedTools "${ALLOWED[@]}" \
     --output-format text
