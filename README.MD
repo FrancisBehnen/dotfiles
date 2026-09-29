@@ -417,8 +417,11 @@ npm install -g ctx7@latest                   # ctx7 (what `ctx7 upgrade` runs)
 bun update -g --latest                       # defuddle + playwright-cli (both bun globals, per CLIfile)
 playwright-cli install-browser chromium      # the Chromium build the new playwright-cli expects
 # glean CLI: covered by `brew upgrade` above (or `glean update`).
-# Don't run `playwright-cli install --skills` to silence its "skill does not match"
-# banner: the installed playwright-cli SKILL.md is locally edited and would be overwritten.
+# playwright-cli's own skill is upstream content, untracked, and goes stale on every
+# upgrade (the CLI then prints a "skill does not match" banner). Our additions live in
+# the tracked render-and-inspect skill, so refreshing it loses nothing:
+rsync -a --delete ~/.bun/install/global/node_modules/@playwright/cli/skills/playwright-cli/ \
+  ~/.agents/skills/playwright-cli/
 #
 # GATED: these hold live credentials, so each is pinned to an audited version in
 # CLIfile and is deliberately NOT upgraded above. Never `uv tool upgrade` them (or
