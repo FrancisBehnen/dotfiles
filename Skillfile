@@ -2,8 +2,14 @@
 # One install reference per line (name, package, or URL).
 # Lines starting with # are comments, blank lines are ignored.
 #
-# Install all:  skills restore
-# Dump current: skills dump
+# Install all:  scripts/setup.sh → install_agent_skills() runs `bunx skills add <line>`
+#               for every line here and in Skillfile.private. Lines are word-split,
+#               so a line may carry flags (e.g. `owner/repo --copy`).
+# Update all:   bunx skills update -g   (keep -g: run from ~ the default scope is
+#               "project", which updates only ~/skills-lock.json)
+# List:         bunx skills ls -g
+# There is no dump command: when you add or remove a skill, edit this file by hand.
+# (`skills experimental_install` restores a project's skills-lock.json, not this file.)
 #
 # ⚠️  Verify these entries match the exact reference you used to install.
 #     Some skills may need a full package name or URL instead of just the name.

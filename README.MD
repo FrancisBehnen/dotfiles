@@ -414,8 +414,7 @@ bunx skills update -g                        # Skillfile skills. Keep -g: run fr
                                              # scope is "project" (~/skills-lock.json) only
 npm outdated -g; bun outdated -g             # see which npm/bun globals are behind
 npm install -g ctx7@latest                   # ctx7 (what `ctx7 upgrade` runs)
-bun update -g --latest                       # defuddle + playwright-cli if bun-installed (`which
-                                             # playwright-cli`); else npm install -g @playwright/cli@latest
+bun update -g --latest                       # defuddle + playwright-cli (both bun globals, per CLIfile)
 playwright-cli install-browser chromium      # the Chromium build the new playwright-cli expects
 # glean CLI: covered by `brew upgrade` above (or `glean update`).
 # Don't run `playwright-cli install --skills` to silence its "skill does not match"

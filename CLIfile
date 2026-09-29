@@ -28,5 +28,5 @@ nlm                 | [ "$(nlm --version 2>/dev/null)" = "nlm version 0.8.2" ] |
 mcp2cli             | [ "$(mcp2cli --version 2>/dev/null)" = "mcp2cli 3.2.0" ] | uv tool install 'mcp2cli==3.2.0' --with 'mcp==1.27.2'
 ctx7                | ctx7 --version                                         | npm install -g ctx7@latest
 defuddle            | defuddle --version                                     | bun add -g defuddle
-playwright-cli      | playwright-cli --version                               | npm install -g @playwright/cli@latest
+playwright-cli      | playwright-cli --version                               | bun add -g @playwright/cli@latest
 playwright-browsers | ls "$HOME/Library/Caches/ms-playwright"/chromium-* >/dev/null 2>&1 | npx --yes playwright install chromium
