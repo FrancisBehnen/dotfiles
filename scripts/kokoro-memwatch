@@ -13,13 +13,13 @@
 #   - system memory: free % (memory_pressure -Q), pressure level, swap used/total
 # and then:
 #   - NOTIFY (macOS notification, at most once per 15 min per condition) when
-#     Kokoro RSS > 4 GiB, system free < 15 %, or swap used > 80 % of total
-#   - RESTART Kokoro (launchctl kickstart -k) when its RSS > 5 GiB, but only when
+#     Kokoro footprint > 8 GiB, system free < 15 %, or swap used > 80 % of total
+#   - RESTART Kokoro (launchctl kickstart -k) when its footprint > 10 GiB, but only when
 #     the VoiceMode conch is free AND no TTS request is in flight (no ESTABLISHED
 #     connection on :8880 and the Kokoro log quiet for 5 s). Otherwise it retries on
 #     the next run. At most one restart per 10 min. Notifies after restarting.
 #
-# Thresholds are on RSS, in GiB (ps reports KiB).
+# Thresholds are on the footprint (Activity Monitor), RSS as fallback; values in MiB.
 #
 # Dry run: `kokoro-memwatch --dry-run` prints the measurements and decisions and
 # never notifies or restarts. The LaunchAgent also runs in dry-run mode while the
@@ -39,8 +39,8 @@ LOG="$VM_DIR/logs/memwatch.log"
 STATE_DIR="$VM_DIR/memwatch.state"
 DRYRUN_MARKER="$VM_DIR/memwatch.dry-run"
 
-NOTIFY_RSS_MIB=4096     # 4 GiB
-RESTART_RSS_MIB=5120    # 5 GiB
+NOTIFY_RSS_MIB=8192     # 8 GiB, on footprint (Activity Monitor) since 2026-10-10
+RESTART_RSS_MIB=10240   # 10 GiB, on footprint (Activity Monitor) since 2026-10-10
 FREE_PCT_MIN=15
 SWAP_PCT_MAX=80
 NOTIFY_COOLDOWN=900     # 15 min per condition
@@ -116,6 +116,8 @@ if [ -n "$pid" ]; then
       printf "%d", v
     }')
 fi
+# Thresholds apply to the footprint (what Activity Monitor shows, incl. Metal memory); RSS is the fallback.
+kokoro_mib="${fp_mib:-$rss_mib}"
 
 # ---- measure: system ------------------------------------------------------
 free_pct=$(memory_pressure -Q 2>/dev/null | awk -F': ' '/free percentage/ { gsub("%", "", $2); print $2 + 0 }')
@@ -139,9 +141,9 @@ swap_pct=0
 [ "$swap_total_mib" -gt 0 ] && swap_pct=$((swap_used_mib * 100 / swap_total_mib))
 
 # ---- decide: notifications ------------------------------------------------
-if [ -n "$rss_mib" ] && [ "$rss_mib" -gt "$NOTIFY_RSS_MIB" ]; then
+if [ -n "$kokoro_mib" ] && [ "$kokoro_mib" -gt "$NOTIFY_RSS_MIB" ]; then
   notify_once kokoro_rss "Kokoro memory high" \
-    "Kokoro RSS is $(mib_to_gib "$rss_mib") GiB (warn at $(mib_to_gib "$NOTIFY_RSS_MIB")). It restarts itself above $(mib_to_gib "$RESTART_RSS_MIB") GiB once the conch is free."
+    "Kokoro memory (Activity Monitor) is $(mib_to_gib "$kokoro_mib") GiB (warn at $(mib_to_gib "$NOTIFY_RSS_MIB")). It restarts itself above $(mib_to_gib "$RESTART_RSS_MIB") GiB once the conch is free."
 fi
 if [ -n "$free_pct" ] && [ "$free_pct" -lt "$FREE_PCT_MIN" ]; then
   notify_once sys_free "System memory low" \
@@ -153,7 +155,7 @@ if [ "$swap_pct" -gt "$SWAP_PCT_MAX" ]; then
 fi
 
 # ---- decide: restart ------------------------------------------------------
-if [ -n "$rss_mib" ] && [ "$rss_mib" -gt "$RESTART_RSS_MIB" ]; then
+if [ -n "$kokoro_mib" ] && [ "$kokoro_mib" -gt "$RESTART_RSS_MIB" ]; then
   last_restart=0
   [ -f "$STATE_DIR/restart.last" ] && last_restart=$(cat "$STATE_DIR/restart.last" 2>/dev/null || echo 0)
   if [ $((now - last_restart)) -lt "$RESTART_COOLDOWN" ]; then
@@ -177,11 +179,11 @@ if [ -n "$rss_mib" ] && [ "$rss_mib" -gt "$RESTART_RSS_MIB" ]; then
       if launchctl kickstart -k "gui/$(id -u)/$LABEL" >/dev/null 2>&1; then
         add_decision "restarted"
         send_notification "Kokoro restarted" \
-          "Kokoro RSS was $(mib_to_gib "$rss_mib") GiB (limit $(mib_to_gib "$RESTART_RSS_MIB")). Restarted while the conch was free."
+          "Kokoro memory (Activity Monitor) was $(mib_to_gib "$kokoro_mib") GiB (limit $(mib_to_gib "$RESTART_RSS_MIB")). Restarted while the conch was free."
       else
         add_decision "restart:FAILED(kickstart)"
         send_notification "Kokoro restart failed" \
-          "kickstart -k $LABEL failed at RSS $(mib_to_gib "$rss_mib") GiB. Check launchctl."
+          "kickstart -k $LABEL failed at $(mib_to_gib "$kokoro_mib") GiB. Check launchctl."
       fi
     fi
   fi
@@ -200,6 +202,6 @@ echo "$line" >>"$LOG"
 
 if [ "$manual" -eq 1 ]; then
   echo "$line"
-  echo "thresholds: notify rss>$(mib_to_gib "$NOTIFY_RSS_MIB")GiB free<${FREE_PCT_MIN}% swap>${SWAP_PCT_MAX}% | restart rss>$(mib_to_gib "$RESTART_RSS_MIB")GiB when conch free + no request in flight"
+  echo "thresholds: notify footprint>$(mib_to_gib "$NOTIFY_RSS_MIB")GiB free<${FREE_PCT_MIN}% swap>${SWAP_PCT_MAX}% | restart footprint>$(mib_to_gib "$RESTART_RSS_MIB")GiB when conch free + no request in flight"
 fi
 exit 0
