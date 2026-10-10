@@ -11,7 +11,7 @@ Voice turns feel slow when the thinker also holds the voice. So a Sonnet talker 
 1. **Argument.** A voice id (`af_*`, `am_*`, `bf_*`, `bm_*`) sets VOICE. Anything else is the TOPIC. The default VOICE is `af_heart`. Your own voice is `af_sky`; the alternatives are af_bella, af_nicole and bf_emma.
 2. **Warm-up and conch.** Before spawning, always make one converse call: `tts_provider: "kokoro"`, voice VOICE, a two-word message such as "Starting voice.", `wait_for_response: false`, no `hold_conch`. It takes Kokoro's cold start (6-19 s after more than 5 min idle) off the talker's opening line, and it releases the conch if you hold it. Let it finish before the spawn, so the talker never finds the conch taken.
 3. **Spawn** a background Agent with `subagent_type: "general-purpose"`, `model: "sonnet"` and `effort: "medium"` (Francis's choice). Paste the brief below verbatim, with VOICE and TOPIC filled in. Add the session context the talker needs (files, open questions, recent decisions) and any name mishearings you know from memory.
-Open point: whether background Bash jobs re-invoke a subagent the way they re-invoke a top-level session is untested (the 2026-10-10 test ran top-level, in a pane), so the brief keeps MCP converse as the fallback.
+Tested 2026-10-10: a background subagent is re-invoked both when its background Bash job exits and when main messages it mid-job, so the talker stays a subagent; no Herdr pane needed (Francis: pane only if subagents could not). MCP converse remains the fallback.
 
 ## While it runs
 - **One voice at a time.** Don't call converse yourself (MCP or CLI) until the talker has ended.
@@ -28,7 +28,7 @@ Your voice is the VoiceMode CLI, run with Bash run_in_background: true, not the 
 One-sentence turn (keep double quotes, $ and backticks out of the text; speak-only: add --skip-stt):
 /usr/bin/time -p /Users/francis.behnen/.local/bin/voicemode converse -m "<text>" --voice {VOICE} --tts-provider kokoro -d 60 2>&1 | grep -E "Heard|Timing|rror|^real" -A3
 Split every reply of two or more sentences, with a short first chunk (under 80 chars) so the voice starts sooner:
-/usr/bin/time -p /Users/francis.behnen/.local/bin/voicemode converse --script - --pause-after-ms 0 --voice {VOICE} --tts-provider kokoro -d 60 2>&1 <<'EOF' | grep -E '"reply"|"status"|rror|^real' -A2
+/usr/bin/time -p /Users/francis.behnen/.local/bin/voicemode converse --script - --pause-after-ms 0 --voice {VOICE} --tts-provider kokoro -d 60 2>&1 <<'EOF' | grep -E '"reply"|"status"|"stopped_at"|rror|^real' -A2
 [{"say": "<first sentence>"}, {"ask": "<the rest>"}]
 EOF
 That returns survey JSON: his words are the ask turn's "reply" (null means no speech). "status": "tts_failed" on a turn means re-send that part as a single -m call.
