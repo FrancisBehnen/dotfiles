@@ -1,0 +1,205 @@
+#!/bin/bash
+# kokoro-memwatch — early warning and safe restart for the Kokoro TTS service.
+#
+# Kokoro leaks memory (hexgrad/kokoro#152). VoiceMode's installer works around it by
+# recycling the uvicorn worker every 25 requests (UVICORN_LIMIT_MAX_REQUESTS), which
+# restarts Kokoro every few voice turns. With that cap raised to 500, this watcher
+# keeps the leak in check instead. Run every 60 s by the LaunchAgent
+# com.francisbehnen.kokoro-memwatch (~/Library/LaunchAgents/).
+#
+# Each run measures:
+#   - Kokoro RSS (the uvicorn process listening on :8880), plus its phys_footprint
+#     (what Activity Monitor shows; Metal/MPS memory lands there, not in RSS)
+#   - system memory: free % (memory_pressure -Q), pressure level, swap used/total
+# and then:
+#   - NOTIFY (macOS notification, at most once per 15 min per condition) when
+#     Kokoro RSS > 4 GiB, system free < 15 %, or swap used > 80 % of total
+#   - RESTART Kokoro (launchctl kickstart -k) when its RSS > 5 GiB, but only when
+#     the VoiceMode conch is free AND no TTS request is in flight (no ESTABLISHED
+#     connection on :8880 and the Kokoro log quiet for 5 s). Otherwise it retries on
+#     the next run. At most one restart per 10 min. Notifies after restarting.
+#
+# Thresholds are on RSS, in GiB (ps reports KiB).
+#
+# Dry run: `kokoro-memwatch --dry-run` prints the measurements and decisions and
+# never notifies or restarts. The LaunchAgent also runs in dry-run mode while the
+# marker file ~/.voicemode/memwatch.dry-run exists; delete it to go live.
+#
+# Log: ~/.voicemode/logs/memwatch.log, one line per run, rotated to .1 at 512 KiB.
+
+set -u
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+
+LABEL="com.voicemode.kokoro"
+PORT=8880
+VM_DIR="$HOME/.voicemode"
+VOICEMODE="$HOME/.local/bin/voicemode"
+KOKORO_LOG="$VM_DIR/logs/kokoro/kokoro.out.log"
+LOG="$VM_DIR/logs/memwatch.log"
+STATE_DIR="$VM_DIR/memwatch.state"
+DRYRUN_MARKER="$VM_DIR/memwatch.dry-run"
+
+NOTIFY_RSS_MIB=4096     # 4 GiB
+RESTART_RSS_MIB=5120    # 5 GiB
+FREE_PCT_MIN=15
+SWAP_PCT_MAX=80
+NOTIFY_COOLDOWN=900     # 15 min per condition
+RESTART_COOLDOWN=600    # 10 min between restarts
+QUIET_SECS=5            # Kokoro log untouched this long = no synthesis running
+LOG_MAX_BYTES=524288    # 512 KiB, then rotate to .1
+
+mkdir -p "$STATE_DIR" "$(dirname "$LOG")"
+
+manual=0
+dry_run=0
+if [ "${1:-}" = "--dry-run" ]; then
+  manual=1
+  dry_run=1
+fi
+[ -e "$DRYRUN_MARKER" ] && dry_run=1
+
+# Under launchd there is no terminal: send stray errors to the log.
+[ -t 2 ] || exec 2>>"$LOG"
+
+now=$(date +%s)
+decisions=""
+add_decision() { decisions="${decisions:+$decisions, }$1"; }
+
+mib_to_gib() { awk -v m="$1" 'BEGIN { printf "%.2f", m / 1024 }'; }
+
+# ---- rotate the log -------------------------------------------------------
+if [ -f "$LOG" ]; then
+  size=$(stat -f %z "$LOG" 2>/dev/null || echo 0)
+  if [ "$size" -gt "$LOG_MAX_BYTES" ]; then
+    mv -f "$LOG" "$LOG.1"
+  fi
+fi
+
+# ---- notifications --------------------------------------------------------
+send_notification() { # title message
+  osascript -e 'on run argv' \
+    -e 'display notification (item 2 of argv) with title (item 1 of argv)' \
+    -e 'end run' "$1" "$2" >/dev/null 2>&1
+}
+
+# notify_once KEY TITLE MESSAGE — rate-limited per KEY. Dry runs keep their own
+# cooldown files, so the log shows what live mode would do and going live starts fresh.
+notify_once() {
+  local key="$1" title="$2" msg="$3" stamp last=0
+  if [ "$dry_run" -eq 1 ]; then stamp="$STATE_DIR/notify.$key.dry"; else stamp="$STATE_DIR/notify.$key"; fi
+  [ -f "$stamp" ] && last=$(cat "$stamp" 2>/dev/null || echo 0)
+  if [ $((now - last)) -lt "$NOTIFY_COOLDOWN" ]; then
+    add_decision "notify:$key(cooldown)"
+    return
+  fi
+  echo "$now" >"$stamp"
+  if [ "$dry_run" -eq 1 ]; then
+    add_decision "would-notify:$key"
+  else
+    send_notification "$title" "$msg"
+    add_decision "notified:$key"
+  fi
+}
+
+# ---- measure: Kokoro ------------------------------------------------------
+pid=$(lsof -nP -t -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)
+rss_mib=""
+fp_mib=""
+if [ -n "$pid" ]; then
+  rss_kib=$(ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ')
+  [ -n "$rss_kib" ] && rss_mib=$((rss_kib / 1024))
+  fp_mib=$(footprint -p "$pid" 2>/dev/null | awk '
+    { for (i = 1; i <= NF; i++) if ($i == "Footprint:") { v = $(i+1); u = $(i+2) } }
+    END {
+      if (v == "") exit
+      if (u == "KB") v = v / 1024; else if (u == "GB") v = v * 1024; else if (u == "B") v = v / 1048576
+      printf "%d", v
+    }')
+fi
+
+# ---- measure: system ------------------------------------------------------
+free_pct=$(memory_pressure -Q 2>/dev/null | awk -F': ' '/free percentage/ { gsub("%", "", $2); print $2 + 0 }')
+case "$(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null)" in
+  1) pressure="normal" ;;
+  2) pressure="warn" ;;
+  4) pressure="critical" ;;
+  *) pressure="unknown" ;;
+esac
+# "total = 3072.00M  used = 1453.00M  free = 1619.00M  (encrypted)"
+read -r swap_total_mib swap_used_mib <<EOF
+$(sysctl -n vm.swapusage 2>/dev/null | awk '
+  function mib(s) { u = substr(s, length(s)); n = substr(s, 1, length(s) - 1) + 0
+                    if (u == "G") return n * 1024; if (u == "K") return n / 1024; return n }
+  { for (i = 1; i <= NF; i++) { if ($i == "total") t = mib($(i+2)); if ($i == "used") us = mib($(i+2)) } }
+  END { printf "%d %d\n", t, us }')
+EOF
+swap_total_mib=${swap_total_mib:-0}
+swap_used_mib=${swap_used_mib:-0}
+swap_pct=0
+[ "$swap_total_mib" -gt 0 ] && swap_pct=$((swap_used_mib * 100 / swap_total_mib))
+
+# ---- decide: notifications ------------------------------------------------
+if [ -n "$rss_mib" ] && [ "$rss_mib" -gt "$NOTIFY_RSS_MIB" ]; then
+  notify_once kokoro_rss "Kokoro memory high" \
+    "Kokoro RSS is $(mib_to_gib "$rss_mib") GiB (warn at $(mib_to_gib "$NOTIFY_RSS_MIB")). It restarts itself above $(mib_to_gib "$RESTART_RSS_MIB") GiB once the conch is free."
+fi
+if [ -n "$free_pct" ] && [ "$free_pct" -lt "$FREE_PCT_MIN" ]; then
+  notify_once sys_free "System memory low" \
+    "Only ${free_pct}% of memory free (warn below ${FREE_PCT_MIN}%). Pressure: $pressure."
+fi
+if [ "$swap_pct" -gt "$SWAP_PCT_MAX" ]; then
+  notify_once swap "Swap nearly full" \
+    "Swap used ${swap_used_mib} of ${swap_total_mib} MiB (${swap_pct}%, warn above ${SWAP_PCT_MAX}%)."
+fi
+
+# ---- decide: restart ------------------------------------------------------
+if [ -n "$rss_mib" ] && [ "$rss_mib" -gt "$RESTART_RSS_MIB" ]; then
+  last_restart=0
+  [ -f "$STATE_DIR/restart.last" ] && last_restart=$(cat "$STATE_DIR/restart.last" 2>/dev/null || echo 0)
+  if [ $((now - last_restart)) -lt "$RESTART_COOLDOWN" ]; then
+    add_decision "restart:deferred(cooldown)"
+  else
+    # The conch CLI writes to ~/voicemode_debug.log on every call, so only ask when needed.
+    conch_free=$("$VOICEMODE" conch status --json 2>/dev/null | plutil -extract free raw -o - - 2>/dev/null)
+    in_flight=$(lsof -nP -t -iTCP:"$PORT" -sTCP:ESTABLISHED 2>/dev/null | wc -l | tr -d ' ')
+    log_age=999999
+    [ -f "$KOKORO_LOG" ] && log_age=$((now - $(stat -f %m "$KOKORO_LOG" 2>/dev/null || echo 0)))
+    if [ "$conch_free" != "true" ]; then
+      add_decision "restart:deferred(conch ${conch_free:-unknown}=not free)"
+    elif [ "$in_flight" -gt 0 ]; then
+      add_decision "restart:deferred(${in_flight} connection(s) on :$PORT)"
+    elif [ "$log_age" -lt "$QUIET_SECS" ]; then
+      add_decision "restart:deferred(kokoro log active ${log_age}s ago)"
+    elif [ "$dry_run" -eq 1 ]; then
+      add_decision "would-restart"
+    else
+      echo "$now" >"$STATE_DIR/restart.last"
+      if launchctl kickstart -k "gui/$(id -u)/$LABEL" >/dev/null 2>&1; then
+        add_decision "restarted"
+        send_notification "Kokoro restarted" \
+          "Kokoro RSS was $(mib_to_gib "$rss_mib") GiB (limit $(mib_to_gib "$RESTART_RSS_MIB")). Restarted while the conch was free."
+      else
+        add_decision "restart:FAILED(kickstart)"
+        send_notification "Kokoro restart failed" \
+          "kickstart -k $LABEL failed at RSS $(mib_to_gib "$rss_mib") GiB. Check launchctl."
+      fi
+    fi
+  fi
+fi
+
+# ---- log ------------------------------------------------------------------
+if [ -n "$pid" ]; then
+  kokoro_part="kokoro pid=$pid rss=$( [ -n "$rss_mib" ] && echo "$(mib_to_gib "$rss_mib")GiB" || echo "?") footprint=$( [ -n "$fp_mib" ] && echo "$(mib_to_gib "$fp_mib")GiB" || echo "?")"
+else
+  kokoro_part="kokoro not listening on :$PORT"
+fi
+mode=""
+[ "$dry_run" -eq 1 ] && mode=" [dry-run]"
+line="$(date '+%Y-%m-%dT%H:%M:%S')$mode $kokoro_part | free=${free_pct:-?}% pressure=$pressure swap=${swap_used_mib}/${swap_total_mib}MiB(${swap_pct}%) | ${decisions:-ok}"
+echo "$line" >>"$LOG"
+
+if [ "$manual" -eq 1 ]; then
+  echo "$line"
+  echo "thresholds: notify rss>$(mib_to_gib "$NOTIFY_RSS_MIB")GiB free<${FREE_PCT_MIN}% swap>${SWAP_PCT_MAX}% | restart rss>$(mib_to_gib "$RESTART_RSS_MIB")GiB when conch free + no request in flight"
+fi
+exit 0
