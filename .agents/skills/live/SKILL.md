@@ -28,11 +28,13 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
    ```
    python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC --target-socket "$CLAUDE_CODE_MESSAGING_SOCKET" < /dev/null 2>&1; echo "TALK_EXIT=$?"
    ```
-   Then Read the job's output file until it shows two lines:
+   Wait for the start with `for i in $(seq 40); do grep -qE '^(bridge:|ERROR)' <output-file> && break; sleep 0.5; done; grep -E '^(TALKER|bridge:|ERROR)' <output-file>`. You should see two lines:
    - `TALKER pid=<pid>`: note the pid.
    - `bridge: tools ask_main, hand_back -> <socket>`
+
+   If you see `ERROR:` instead, go to "When it ends".
 4. **Pane mode (on request).** Load the `herdr` skill and follow it to split a sibling pane with `--no-focus`.
-   - **Run the command.** Use the command above without `< /dev/null`, so Enter can end his turn. The pane's shell does not have this session's variables, so your shell expands the socket path, and `\$?` reaches the pane unexpanded. Add the `--system` / `--dutch` flags the same way.
+   - **Run the command.** Use the command above without `< /dev/null`, so Enter can end his turn. The pane's shell does not have this session's variables, so your shell expands the socket path, and `\$?` reaches the pane unexpanded. Add `--dutch --stt-lang nl` as plain words. Add a topic as `--system \"\$(cat ~/.local/state/live-talker/live-brief.txt)\"`, so the pane's shell reads the file. Never expand the brief into the command line.
      ```
      herdr pane run <pane> "python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC --target-socket $CLAUDE_CODE_MESSAGING_SOCKET; echo TALK_EXIT=\$?"
      ```
