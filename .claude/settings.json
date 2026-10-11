@@ -55,7 +55,8 @@
       "Bash(* --help*)",
       "Bash(mutagen *)",
       "Bash(.venv/bin/python *.py)",
-      "mcp__pencil"
+      "mcp__pencil",
+      "mcp__tell_talker__tell_talker"
     ],
     "deny": [
       "Bash(rm --rm*)",
