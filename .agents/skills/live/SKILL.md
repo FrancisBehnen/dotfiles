@@ -47,20 +47,24 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
    Then **end your turn.** The talker's messages reach you while you are idle or between tool calls.
 
 ## While it runs
-- **Voice requests** come in as `[Voice request from Francis, relayed by his live-talker ...]`.
-  - Answer only with `mcp__tell_talker__tell_talker`: one to three short spoken sentences, with no markdown, code or paths. Your on-screen text is not heard.
+You read along with the transcript of Francis's conversation with Mini, and you correct Mini only when it is going in a wrong direction. Each message from the talker is a label plus its content, nothing else. In the content, `Francis (whisper):` is his own words as the local whisper transcript has them, and `Mini:` is what Mini said aloud. Whisper can mishear words, especially names.
+- **Transcripts** come in as `[live transcript, turn N]`, after every turn. `Mini asked you:` is there when Mini sent you a request that turn.
+  - They are read only. Stay silent, and keep anything on screen to a few words, because it is not heard.
+  - Make one short `tell_talker` correction, one or two spoken sentences, only if Mini got something wrong: it misunderstood him, reworded a name, path or number into something different, or told him something wrong.
+  - Mini heard his audio, so a word that only whisper gets wrong is not Mini's mistake.
+- **Requests** come in as `[live request from Francis, turn N: answer via tell_talker]`. `Mini's question:` is Mini's phrasing of what he asked, and `Francis (whisper):` follows when his words were ready within a second.
+  - Answer only with `mcp__tell_talker__tell_talker`: one to three short spoken sentences, plain text with no markdown, code or file paths. Your on-screen text is not heard.
+  - Francis's words beat Mini's paraphrase on names, paths and numbers. Where they differ, go by his words and check the spelling against what exists.
   - If the work takes more than about 20 s, send a one-line status first, then the answer.
   - Delegate edits as usual.
-- **Turn logs** come in as `[live-talker turn log N: ...]`.
-  - Stay silent, and keep anything on screen to a few words.
-  - Make one `tell_talker` correction only if Mini got something wrong: it misunderstood him, reworded a name, path or number, or told him something wrong.
+- **The hand-back** comes in as `[live hand-back: the voice session is over]`. See "When it ends".
 - **Never speak through VoiceMode** while the talker runs. That means no converse call (MCP or CLI) and no `/talk`.
 - **What only Francis can approve goes on screen.** For anything auto-mode blocks, or that needs his approval: end your turn so the screen text shows, and tell him by `tell_talker` that something is waiting on screen.
 
 ## Stopping
 - **By voice:** Francis tells Mini he is done, or asks it to hand back or stop. Mini calls `hand_back` at once, with no second confirmation; it asks "Shall I hand back to Opus?" only when it is unclear whether he wants to end. The hand-back message reaches you, and talk.py exits 0. `hand_back` only hands back: Mini sends no summary and says at most a short goodbye.
 - **He asks you, typed or through `ask_main`:**
-  1. Through `ask_main`, first `tell_talker` one short goodbye. Wait for that turn's log, which arrives after the goodbye has played.
+  1. Through `ask_main`, first `tell_talker` one short goodbye. Wait for that turn's transcript, which arrives after the goodbye has played.
   2. Check the pid with `ps -p <pid> -o command= | grep -q 'live-talker/talk.py'`, then run `kill -TERM <pid>`.
   3. talk.py stops the way Ctrl-C does: it closes the mic, player and voice socket, prints `STOPPED signal=SIGTERM` and the exit lines, and exits 0.
 - **Last resort,** if it is still running about 10 s later:
@@ -71,8 +75,8 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
 The trigger is the background job's exit notification. In pane mode it is the watcher job; then read the pane's last 40 lines. The hand-back message and the exit can arrive in either order. Act on whichever comes first; the steps are safe to repeat.
 1. **Always restore the soundfonts first:** `bash ~/.agents/skills/live/scripts/soundfonts.sh restore`
 2. **Read the ending from the output:**
-   - **`HAND_BACK delivered=yes`, then `TALK_EXIT=0`:** a clean ending. The hand-back message in your inbox has no summary, only the last turn (his words and Mini's goodbye). The turn logs you already have carry the rest of the conversation. Carry on on screen.
-   - **`HAND_BACK delivered=no`:** the hand-back message did not reach you. The turn logs up to the previous turn are already in your inbox; read the last exchange from the talker output (its `you:` and `>>` lines).
+   - **`HAND_BACK delivered=yes`, then `TALK_EXIT=0`:** a clean ending. The hand-back message has no summary, only the last turn (his words and Mini's goodbye). The transcripts you already have carry the rest of the conversation. `tell_talker` reaches no one now. Carry on on screen.
+   - **`HAND_BACK delivered=no`:** the hand-back message did not reach you. You already have the transcripts up to the previous turn; read the last exchange from the talker output (its `you:` and `>>` lines).
    - **`STOPPED signal=SIGTERM`:** you stopped it on request.
    - **`BUDGET_STOP session|month ...`, then `TALK_EXIT=3`:** a cap was hit (EUR 5 per session, EUR 100 per month). Offer `/talk` as the fallback.
    - **`ERROR: ...`, then `TALK_EXIT=1`:** report the line. Typical causes are another talker already listening, the mic capture ending (wrong `--mic-device` or no microphone permission), or a router error.
