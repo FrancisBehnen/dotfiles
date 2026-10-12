@@ -58,7 +58,7 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
 - **What only Francis can approve goes on screen.** For anything auto-mode blocks, or that needs his approval: end your turn so the screen text shows, and tell him by `tell_talker` that something is waiting on screen.
 
 ## Stopping
-- **By voice:** Francis tells Mini he is done, or asks it to hand back or stop. Mini calls `hand_back`, the hand-back message reaches you, and talk.py exits 0.
+- **By voice:** Francis tells Mini he is done, or asks it to hand back or stop. Mini calls `hand_back` at once, with no second confirmation; it asks "Shall I hand back to Opus?" only when it is unclear whether he wants to end. The hand-back message reaches you, and talk.py exits 0. `hand_back` only hands back: Mini sends no summary and says at most a short goodbye.
 - **He asks you, typed or through `ask_main`:**
   1. Through `ask_main`, first `tell_talker` one short goodbye. Wait for that turn's log, which arrives after the goodbye has played.
   2. Check the pid with `ps -p <pid> -o command= | grep -q 'live-talker/talk.py'`, then run `kill -TERM <pid>`.
@@ -71,8 +71,8 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
 The trigger is the background job's exit notification. In pane mode it is the watcher job; then read the pane's last 40 lines. The hand-back message and the exit can arrive in either order. Act on whichever comes first; the steps are safe to repeat.
 1. **Always restore the soundfonts first:** `bash ~/.agents/skills/live/scripts/soundfonts.sh restore`
 2. **Read the ending from the output:**
-   - **`HAND_BACK delivered=yes`, then `TALK_EXIT=0`:** a clean ending. The hand-back message in your inbox has the decided, open and next fields. Check them against the turn logs, then carry on on screen.
-   - **`HAND_BACK delivered=no`:** the summary did not reach you. Use the `  hand_back: decided: ... | open: ... | next: ...` line in the output instead.
+   - **`HAND_BACK delivered=yes`, then `TALK_EXIT=0`:** a clean ending. The hand-back message in your inbox has no summary, only the last turn (his words and Mini's goodbye). The turn logs you already have carry the rest of the conversation. Carry on on screen.
+   - **`HAND_BACK delivered=no`:** the hand-back message did not reach you. The turn logs up to the previous turn are already in your inbox; read the last exchange from the talker output (its `you:` and `>>` lines).
    - **`STOPPED signal=SIGTERM`:** you stopped it on request.
    - **`BUDGET_STOP session|month ...`, then `TALK_EXIT=3`:** a cap was hit (EUR 5 per session, EUR 100 per month). Offer `/talk` as the fallback.
    - **`ERROR: ...`, then `TALK_EXIT=1`:** report the line. Typical causes are another talker already listening, the mic capture ending (wrong `--mic-device` or no microphone permission), or a router error.
