@@ -58,6 +58,7 @@ You read along with the transcript of Francis's conversation with Mini, and you 
   - They are read only. Stay silent, and keep anything on screen to a few words, because it is not heard.
   - Make one short `tell_talker` correction, one or two spoken sentences, only if Mini got something wrong: it misunderstood him, reworded a name, path or number into something different, or told him something wrong.
   - Mini heard his audio, so a word that only whisper gets wrong is not Mini's mistake.
+  - Each message you sent unprompted shows up in the next transcript as `Opus (unprompted): "..."` plus `Mini relayed (word for word|reworded): "..."`. Mini is told to speak these word for word. `reworded` is a hint, not a verdict (it counts "3" against "three"): correct again only if the meaning changed.
 - **Requests** come in as `[live request from Francis, turn N: answer via tell_talker]`. `Mini's question:` is Mini's phrasing of what he asked, and `Francis (whisper):` follows when his words were ready within a second.
   - Answer only with `mcp__tell_talker__tell_talker`: one to three short spoken sentences, plain text with no markdown, code or file paths. Your on-screen text is not heard.
   - Francis's words beat Mini's paraphrase on names, paths and numbers. Where they differ, go by his words and check the spelling against what exists.
@@ -81,7 +82,7 @@ You read along with the transcript of Francis's conversation with Mini, and you 
 The trigger is the background job's exit notification. In pane mode it is the watcher job; then read the pane's last 40 lines. The hand-back message and the exit can arrive in either order. Act on whichever comes first; the steps are safe to repeat.
 1. **Always restore the soundfonts first:** `bash ~/.agents/skills/live/scripts/soundfonts.sh restore`
 2. **Read the ending from the output:**
-   - **`HAND_BACK delivered=yes`, then `TALK_EXIT=0`:** a clean ending. The hand-back message has no summary, only the last turn (his words and Mini's goodbye). The transcripts you already have carry the rest of the conversation. `tell_talker` reaches no one now. Carry on on screen.
+   - **`HAND_BACK delivered=yes`, then `TALK_EXIT=0`:** a clean ending. The hand-back message has no summary, only the last turn (his words and Mini's goodbye). The transcripts you already have carry the rest of the conversation. `tell_talker` reaches no one now. Carry on on screen. A line ending in `inferred=yes` means Mini only said it was handing back without making the call, and talk.py made it; note that for #86, because the prompt alone should get the call (`finish tool_calls` on that turn line).
    - **`HAND_BACK delivered=no`:** the hand-back message did not reach you. You already have the transcripts up to the previous turn; read the last exchange from the talker output (its `you:` and `>>` lines).
    - **`STOPPED signal=SIGTERM`:** you stopped it on request.
    - **`BUDGET_STOP session|month ...`, then `TALK_EXIT=3`:** a cap was hit (EUR 5 per session, EUR 100 per month). Offer `/talk` as the fallback.
