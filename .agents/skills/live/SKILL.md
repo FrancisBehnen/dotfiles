@@ -5,13 +5,19 @@ description: Start the live voice talker from the session you're in. live-talker
 
 # live: Mini talks, this session thinks
 
-The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds the voice and sends anything that needs thought to you through your own inbox socket. You answer through the `tell_talker` MCP tool. The design is in GitHub FrancisBehnen/a-genai-i #85 (map #68). Background is in `~/Code/live-talker/README.md`.
+The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds the voice and sends anything that needs thought to you, through the `tell_talker` channel when this session was started with `claude-live`, otherwise through your own inbox socket. You answer through the `tell_talker` MCP tool. The design is in GitHub FrancisBehnen/a-genai-i #85 (map #68). Background is in `~/Code/live-talker/README.md`.
 
 ## Check first (stop and tell Francis if one fails)
 1. **The tool is loaded:** run ToolSearch `select:mcp__tell_talker__tell_talker`.
    - The server has been registered at user scope in `~/.claude.json` since 2026-10-11, and the tool is allowed in `~/.claude/settings.json`.
    - If the tool is missing, this session started before the server was registered, or the server failed to start. A restarted session gets it. Without it, no `ask_main` can be answered.
-2. **The inbox socket exists:** `test -S "$CLAUDE_CODE_MESSAGING_SOCKET" && echo "$CLAUDE_CODE_MESSAGING_SOCKET"`
+2. **Pick the route** (a-genai-i #87). The talker reaches you through the `tell_talker` channel when this session has one, and otherwise through your inbox socket:
+   ```
+   CH="$HOME/.local/state/live-talker/thinker-$(basename "$CLAUDE_CODE_MESSAGING_SOCKET" .sock).sock"; if test -S "$CH"; then echo "ROUTE --channel-socket $CH"; elif test -S "$CLAUDE_CODE_MESSAGING_SOCKET"; then echo "ROUTE --target-socket $CLAUDE_CODE_MESSAGING_SOCKET"; else echo "NO ROUTE"; fi
+   ```
+   - **`--channel-socket`:** this session was started with `claude-live` (`claude --dangerously-load-development-channels server:tell_talker`). Messages arrive as `<channel source="tell_talker" kind=... turn=...>`, wrapping the same labels. Known gap (2026-10-12): a request that arrives during one of your tool calls is attached to that tool result, and Opus declined one there as untrusted. If you leave one unanswered, say so on screen.
+   - **`--target-socket`:** a plain `claude` session. Tell Francis once that messages go through the inbox socket, because the session was not started with `claude-live`. Messages arrive as "Another Claude session sent a message", with the same labels.
+   - **`NO ROUTE`:** stop and tell him.
 3. **One voice at a time:**
    - No `/talk` talker may be running in this session.
    - `/Users/francis.behnen/.local/bin/voicemode conch status` must say the conch is free. Don't release it yourself. talk.py does not take the conch, so this check is the guard.
@@ -24,19 +30,19 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
 2. **Arguments:**
    - **A topic:** write the brief with the Write tool to `~/.local/state/live-talker/live-brief.txt`, then add `--system "$(cat ~/.local/state/live-talker/live-brief.txt)"`. Never splice his words into the command line.
    - **`dutch`:** add `--dutch --stt-lang nl`.
-3. **Background mode (the default).** Run Bash with `run_in_background: true`, with the sandbox off, because it needs the mic, the router and `~/.local/state`. Put in MIC as a literal number:
+3. **Background mode (the default).** Run Bash with `run_in_background: true`, with the sandbox off, because it needs the mic, the router and `~/.local/state`. Put in MIC as a literal number, and ROUTE as the flag and path from "Pick the route", spelled out literally:
    ```
-   python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC --target-socket "$CLAUDE_CODE_MESSAGING_SOCKET" < /dev/null 2>&1; echo "TALK_EXIT=$?"
+   python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC ROUTE < /dev/null 2>&1; echo "TALK_EXIT=$?"
    ```
    Wait for the start with `for i in $(seq 40); do grep -qE '^(bridge:|ERROR)' <output-file> && break; sleep 0.5; done; grep -E '^(TALKER|bridge:|ERROR)' <output-file>`. You should see two lines:
    - `TALKER pid=<pid>`: note the pid.
-   - `bridge: tools ask_main, hand_back -> <socket>`
+   - `bridge: tools ask_main, hand_back -> <socket>` (`-> channel <socket>` on the channel route)
 
    If you see `ERROR:` instead, go to "When it ends".
 4. **Pane mode (on request).** Load the `herdr` skill and follow it to split a sibling pane with `--no-focus`.
-   - **Run the command.** Use the command above without `< /dev/null`, so Enter can end his turn. The pane's shell does not have this session's variables, so your shell expands the socket path, and `\$?` reaches the pane unexpanded. Add `--dutch --stt-lang nl` as plain words. Add a topic as `--system \"\$(cat ~/.local/state/live-talker/live-brief.txt)\"`, so the pane's shell reads the file. Never expand the brief into the command line.
+   - **Run the command.** Use the command above without `< /dev/null`, so Enter can end his turn. The pane's shell does not have this session's variables, so ROUTE goes in with its path spelled out, and `\$?` reaches the pane unexpanded. Add `--dutch --stt-lang nl` as plain words. Add a topic as `--system \"\$(cat ~/.local/state/live-talker/live-brief.txt)\"`, so the pane's shell reads the file. Never expand the brief into the command line.
      ```
-     herdr pane run <pane> "python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC --target-socket $CLAUDE_CODE_MESSAGING_SOCKET; echo TALK_EXIT=\$?"
+     herdr pane run <pane> "python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC ROUTE; echo TALK_EXIT=\$?"
      ```
    - **Watch it:** run `herdr pane wait-output <pane> --regex 'TALK_EXIT=[0-9]+' --source recent-unwrapped` with `run_in_background: true`. Never run it in the foreground, because that blocks every `ask_main`.
    - **Get the pid:** `herdr pane read <pane> --source recent-unwrapped --lines 20` shows the `TALKER pid=` line.

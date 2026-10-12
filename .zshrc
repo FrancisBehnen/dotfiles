@@ -218,6 +218,12 @@ export PATH="$HOME/bin:$PATH"
 # Claude Code helper scripts (e.g. pulse-runs)
 export PATH="$HOME/.claude/bin:$PATH"
 
+# Claude Code with the live talker's tell_talker channel (a-genai-i #87): /live then reaches this
+# session as a channel instead of through the inbox socket. One Enter on the dev-channels warning
+# per launch. A separate name, so plain `claude`, `claude -p` (pulse) and agent-launched sessions
+# are untouched; /live still works from them, through the inbox socket.
+alias claude-live='claude --dangerously-load-development-channels server:tell_talker'
+
 # rm-safely - Safe rm command
 source "$HOME/.rm-safely" >/dev/null 2>&1
 
