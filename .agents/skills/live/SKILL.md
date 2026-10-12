@@ -58,12 +58,16 @@ You read along with the transcript of Francis's conversation with Mini, and you 
   - They are read only. Stay silent, and keep anything on screen to a few words, because it is not heard.
   - Make one short `tell_talker` correction, one or two spoken sentences, only if Mini got something wrong: it misunderstood him, reworded a name, path or number into something different, or told him something wrong.
   - Mini heard his audio, so a word that only whisper gets wrong is not Mini's mistake.
-  - Each message you sent unprompted shows up in the next transcript as `Opus (unprompted): "..."` plus `Mini relayed (word for word|reworded): "..."`. Mini is told to speak these word for word. `reworded` is a hint, not a verdict (it counts "3" against "three"): correct again only if the meaning changed.
+  - Each message you sent unprompted shows up in the next transcript as `Opus (unprompted): "..."` plus `Mini relayed (word for word|reworded): "..."`. Mini gets it as the result of an `ask_main` call it did not make, marked as your own unprompted message, and is told to speak it word for word. `reworded` is a hint, not a verdict (it counts "3" against "three"): correct again only if the meaning changed.
+  - A transcript that ends with `Stopped: ...` is the last one: the session was stopped mid-turn (by you or by Ctrl-C), and Mini's words in it may be cut short.
 - **Requests** come in as `[live request from Francis, turn N: answer via tell_talker]`. `Mini's question:` is Mini's phrasing of what he asked, and `Francis (whisper):` follows when his words were ready within a second.
   - Answer only with `mcp__tell_talker__tell_talker`: one to three short spoken sentences, plain text with no markdown, code or file paths. Your on-screen text is not heard.
   - Francis's words beat Mini's paraphrase on names, paths and numbers. Where they differ, go by his words and check the spelling against what exists.
   - If the work takes more than about 20 s, send a one-line status first, then the answer.
   - Delegate edits as usual.
+- **Write what Mini speaks for Francis, never for Mini** (rounds 3-7 of #86). Mini repeats your text in its own voice, so:
+  - **Address Francis in the third person in corrections:** "Francis, the PR is 87, not 78, while Opus checks the build." Never use "I" for yourself: Mini says it as its own "I", and "keep talking while I answer" came out as "I'll keep talking while you answer". Name yourself as Opus.
+  - **No hints or next steps for Francis**, in answers or corrections ("next, try saying that's it for now"): Mini takes them as its own cue, and offered and announced hand-backs against its brief. Say only the fact or the answer; what he does next is his to say.
 - **The hand-back** comes in as `[live hand-back: the voice session is over]`. See "When it ends".
 - **Never speak through VoiceMode** while the talker runs. That means no converse call (MCP or CLI) and no `/talk`.
 - **What only Francis can approve goes on screen.** For anything auto-mode blocks, or that needs his approval: end your turn so the screen text shows, and tell him by `tell_talker` that something is waiting on screen.
@@ -84,7 +88,8 @@ The trigger is the background job's exit notification. In pane mode it is the wa
 2. **Read the ending from the output:**
    - **`HAND_BACK delivered=yes`, then `TALK_EXIT=0`:** a clean ending. The hand-back message has no summary, only the last turn (his words and Mini's goodbye). The transcripts you already have carry the rest of the conversation. `tell_talker` reaches no one now. Carry on on screen. A line ending in `inferred=yes` means Mini only said it was handing back without making the call, and talk.py made it; note that for #86, because the prompt alone should get the call (`finish tool_calls` on that turn line).
    - **`HAND_BACK delivered=no`:** the hand-back message did not reach you. You already have the transcripts up to the previous turn; read the last exchange from the talker output (its `you:` and `>>` lines).
-   - **`STOPPED signal=SIGTERM`:** you stopped it on request.
+   - **`STOPPED signal=SIGTERM`:** you stopped it on request. If it cut a turn off, a `turn <n> interrupted: ...` line comes first, that turn has a `turns.csv` row and its cost is booked, and its transcript, ending in `Stopped: ...`, has reached you.
+   - **`relay as a tool result refused`** anywhere in the output: the router did not accept your unprompted messages as an `ask_main` result, so they went in the user role again (`[user role]` on the relay lines). Note that for #86.
    - **`BUDGET_STOP session|month ...`, then `TALK_EXIT=3`:** a cap was hit (EUR 5 per session, EUR 100 per month). Offer `/talk` as the fallback.
    - **`ERROR: ...`, then `TALK_EXIT=1`:** report the line. Typical causes are another talker already listening, the mic capture ending (wrong `--mic-device` or no microphone permission), or a router error.
 3. **Report on screen in a few lines:**
