@@ -1,0 +1,8 @@
+# Dutch respellings for English loanwords, applied by server.py to the text sent to
+# nl_* voices only (Kokoro and English sessions never see them). Piper phonemises with
+# espeak-ng's Dutch rules, so "Slack" comes out as "slak" and "Coolblue" as "Koolbuje".
+# Format: word-or-phrase <TAB> respelling. Matched case-insensitively on word boundaries.
+# Each entry below was checked by a Whisper round trip (2026-10-14): original vs respelt.
+Coolblue	Koelbloe
+Slack	Slek
+Jira	Djira

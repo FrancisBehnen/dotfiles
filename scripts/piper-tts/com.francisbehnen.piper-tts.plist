@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.francisbehnen.piper-tts</string>
+
+    <!-- Piper TTS (Dutch voices) on http://127.0.0.1:8893/v1 for VoiceMode's /talk dutch.
+         NOT installed by default. To install and start it (once):
+           cp ~/scripts/piper-tts/com.francisbehnen.piper-tts.plist ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.francisbehnen.piper-tts.plist
+         To remove:
+           launchctl bootout gui/$(id -u)/com.francisbehnen.piper-tts && rm ~/Library/LaunchAgents/com.francisbehnen.piper-tts.plist
+         Logs: ~/.voicemode/logs/piper-tts.log. Memory: ~0.45 GB RSS with three voices loaded. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>exec "$HOME/scripts/piper-tts/piper-tts" &gt;&gt; "$HOME/.voicemode/logs/piper-tts.log" 2&gt;&amp;1</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
