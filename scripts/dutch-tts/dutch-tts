@@ -1,0 +1,50 @@
+#!/bin/bash
+# dutch-tts — Dutch voices for VoiceMode, on an OpenAI-compatible endpoint.
+# Serves the macOS system voice "Claire (Enhanced)" as nl_NL-claire-enhanced (Francis's
+# default Dutch voice since 2026-10-14) and "Xander" (male, NL) as nl_NL-xander, rendered
+# silently with `say -o`. Stdlib only, on the system Python; no venv, no models.
+# (It began as a Piper wrapper, "piper-tts"; the Piper voices were dropped 2026-10-14.)
+#
+#   dutch-tts            start the server in the foreground (http://127.0.0.1:8893/v1)
+#   dutch-tts setup      check that the say voices are installed
+#   dutch-tts health     ask a running server which voices it has
+#
+# Code lives here (~/scripts/dutch-tts/, dotfiles repo).
+# Start in the background by hand:
+#   nohup ~/scripts/dutch-tts/dutch-tts >> ~/.voicemode/logs/dutch-tts.log 2>&1 &
+# Autostart: com.francisbehnen.dutch-tts.plist next to this file — NOT installed;
+# its header has the one-line install command.
+# VoiceMode reaches it as the second VOICEMODE_TTS_BASE_URLS entry, after Kokoro;
+# see server.py's docstring for why that routing works.
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON=/usr/bin/python3
+PORT="${DUTCH_TTS_PORT:-8893}"
+
+case "${1:-serve}" in
+  setup)
+    missing=0
+    listing="$(/usr/bin/say -v '?')"
+    for v in 'Claire (Enhanced)' 'Xander'; do
+      if grep -q "^${v}  " <<<"$listing"; then
+        echo "ok: say voice '$v' is installed"
+      else
+        echo "missing: say voice '$v' (System Settings > Accessibility > Spoken Content > System voice > Manage Voices > Dutch)"
+        missing=1
+      fi
+    done
+    exit "$missing"
+    ;;
+  health)
+    curl -fsS "http://127.0.0.1:${PORT}/health"; echo
+    ;;
+  serve)
+    shift || true
+    exec "$PYTHON" "$HERE/server.py" --port "$PORT" "$@"
+    ;;
+  *)
+    exec "$PYTHON" "$HERE/server.py" --port "$PORT" "$@"
+    ;;
+esac
