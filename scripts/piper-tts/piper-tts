@@ -1,9 +1,11 @@
 #!/bin/bash
 # piper-tts — Dutch Piper voices for VoiceMode, on an OpenAI-compatible endpoint.
+# It also serves the macOS system voice "Claire (Enhanced)" as nl_NL-claire-enhanced
+# (rendered silently with `say -o`; Francis's default Dutch voice since 2026-10-14).
 #
 #   piper-tts            start the server in the foreground (http://127.0.0.1:8893/v1)
 #   piper-tts setup      create the venv and download the Dutch voices (idempotent)
-#   piper-tts health     ask a running server which voices it has
+#   piper-tts health     ask a running server which voices it has (Piper and say)
 #
 # Code lives here (~/scripts/piper-tts/, dotfiles repo). The venv and the voice models
 # live outside git, in ~/.local/share/piper-tts/{venv,voices}/ (~330 MB of models).
