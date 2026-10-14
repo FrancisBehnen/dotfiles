@@ -16,6 +16,14 @@ Wire format (matches what VoiceMode 8.12 sends and decodes):
     length_scale (1/speed).
   - Unknown voice or unsupported format: HTTP 400 with an OpenAI-shaped error.
 
+Multi-speaker models (such as nl_NL-mls-medium, 52 speakers): request one speaker as
+"<model>-<index>", e.g. "nl_NL-mls-medium-12", where <index> is Piper's speaker id
+(0..num_speakers-1, the values of speaker_id_map in the .onnx.json, not the MLS
+dataset ids that are its keys). The bare model name means the model's
+default_speaker_id (0 for mls). The name keeps its "nl_NL-" prefix, so Kokoro
+still rejects it (it checks the part before the first "-") and VoiceMode still
+falls through to this server.
+
 Stdlib HTTP server plus piper-tts and numpy; run it with the venv python via the
 `piper-tts` launcher next to this file. Every voice in --voices-dir is loaded at
 start, so the first request is not a cold load.
@@ -39,8 +47,9 @@ OUT_RATE = 24000  # VoiceMode decodes pcm as 16-bit mono at 24 kHz (config.SAMPL
 SENTENCE_GAP_S = 0.12  # silence between sentences
 
 log = logging.getLogger("piper-tts")
-VOICES: dict[str, PiperVoice] = {}
-LOCKS: dict[str, threading.Lock] = {}
+VOICES: dict[str, PiperVoice] = {}  # model name -> loaded model
+LOCKS: dict[str, threading.Lock] = {}  # per model; a model's speakers share it
+NAMES: dict[str, tuple[str, int | None]] = {}  # requestable voice name -> (model, speaker id)
 
 
 def load_voices(voices_dir: Path) -> None:
@@ -49,10 +58,31 @@ def load_voices(voices_dir: Path) -> None:
         t0 = time.perf_counter()
         VOICES[name] = PiperVoice.load(onnx)
         LOCKS[name] = threading.Lock()
-        log.info("loaded %s (%d Hz) in %.2fs", name, VOICES[name].config.sample_rate,
-                 time.perf_counter() - t0)
+        n_speakers = VOICES[name].config.num_speakers
+        NAMES[name] = (name, None)
+        if n_speakers > 1:
+            NAMES[name] = (name, VOICES[name].config.default_speaker_id or 0)
+            for sid in range(n_speakers):
+                NAMES[f"{name}-{sid}"] = (name, sid)
+        log.info("loaded %s (%d Hz, %d speaker%s) in %.2fs", name, VOICES[name].config.sample_rate,
+                 n_speakers, "" if n_speakers == 1 else "s", time.perf_counter() - t0)
     if not VOICES:
         raise SystemExit(f"no *.onnx voices in {voices_dir}")
+
+
+def voice_names() -> list[str]:
+    """Every requestable voice name, multi-speaker entries in speaker order."""
+    def key(n: str):
+        model, sid = NAMES[n]
+        return (model, -1 if sid is None else sid)
+    return sorted(NAMES, key=key)
+
+
+def health() -> dict:
+    multi = {m: v.config.num_speakers for m, v in VOICES.items() if v.config.num_speakers > 1}
+    return {"status": "ok", "models": sorted(VOICES),
+            "speakers": {m: f"{m}-0 .. {m}-{n - 1}" for m, n in sorted(multi.items())},
+            "voices": voice_names()}
 
 
 RESPELL: list[tuple[re.Pattern, str]] = []
@@ -89,11 +119,12 @@ def to_pcm24k(audio: np.ndarray, in_rate: int) -> bytes:
 
 def synth_chunks(voice_name: str, text: str, speed: float | None):
     """Yield 24 kHz int16 PCM bytes, one piece per sentence."""
-    voice = VOICES[voice_name]
-    cfg = SynthesisConfig(length_scale=(1.0 / speed) if speed else None)
+    model, speaker_id = NAMES[voice_name]
+    voice = VOICES[model]
+    cfg = SynthesisConfig(speaker_id=speaker_id, length_scale=(1.0 / speed) if speed else None)
     gap = b"\x00\x00" * int(OUT_RATE * SENTENCE_GAP_S)
     text = respell(voice_name, text)
-    with LOCKS[voice_name]:
+    with LOCKS[model]:
         for i, chunk in enumerate(voice.synthesize(text, syn_config=cfg)):
             pcm = to_pcm24k(chunk.audio_float_array, chunk.sample_rate)
             yield (gap + pcm) if i else pcm
@@ -119,12 +150,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path in ("/health", "/v1/health"):
-            self._json(200, {"status": "ok", "voices": sorted(VOICES)})
+            self._json(200, health())
         elif self.path in ("/v1/models", "/models"):
             self._json(200, {"object": "list",
                              "data": [{"id": "piper", "object": "model"}, {"id": "tts-1", "object": "model"}]})
         elif self.path in ("/v1/audio/voices", "/v1/voices"):
-            self._json(200, {"voices": sorted(VOICES)})
+            self._json(200, {"voices": voice_names()})
         else:
             self._error(404, f"no route {self.path}")
 
@@ -139,8 +170,9 @@ class Handler(BaseHTTPRequestHandler):
         voice = req.get("voice") or ""
         fmt = (req.get("response_format") or "pcm").lower()
         speed = req.get("speed")
-        if voice not in VOICES:
-            return self._error(400, f"unknown voice '{voice}'; available: {', '.join(sorted(VOICES))}")
+        if voice not in NAMES:
+            return self._error(400, f"unknown voice '{voice}'; available: {', '.join(sorted(VOICES))}"
+                                    " (multi-speaker: <model>-<speaker index>, see /health)")
         if fmt not in ("pcm", "wav"):
             return self._error(400, f"unsupported response_format '{fmt}'; use pcm or wav")
         if not text:
@@ -200,7 +232,8 @@ def main() -> None:
     load_voices(args.voices_dir)
     load_respell(args.respell)
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    log.info("listening on http://%s:%d/v1 with %s", args.host, args.port, ", ".join(sorted(VOICES)))
+    log.info("listening on http://%s:%d/v1 with %s (%d voice names)", args.host, args.port,
+             ", ".join(sorted(VOICES)), len(NAMES))
     try:
         server.serve_forever()
     except KeyboardInterrupt:
