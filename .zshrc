@@ -215,7 +215,7 @@ skills() {
 # Set bin folder for claude-remote
 export PATH="$HOME/bin:$PATH"
 
-# Claude Code helper scripts (e.g. pulse-runs)
+# Claude Code helper scripts (~/.claude/bin)
 export PATH="$HOME/.claude/bin:$PATH"
 
 # Claude Code with the live talker's tell_talker channel (a-genai-i #87): /live then reaches this
