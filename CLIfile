@@ -14,7 +14,7 @@
 # - Lines starting with # and blank lines are ignored.
 #
 # NOTE: the glean / fellow / slack CLIs are handled by setup_pulse_sources()
-#       (project-pulse context path), NOT here — do not duplicate them.
+#       (the pulse's sources), NOT here — do not duplicate them.
 # NOTE: one-time INTERACTIVE auth is never scripted here (e.g. `nlm auth`,
 #       `glean auth login`). This file only installs the binaries.
 

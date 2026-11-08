@@ -518,7 +518,7 @@ install_claude_plugins() {
 }
 
 setup_pulse_sources() {
-  # Headless project-pulse context sources. The launchd pulse runs `claude -p`, which loads
+  # The pulse's sources, headless. The launchd pulse runs `claude -p`, which loads
   # NO claude.ai MCP connectors, so each source needs a local CLI. Glean + Fellow are set up
   # here; the Slack source is reproduced by a private script (dotfiles-private), since its
   # setup is intentionally kept out of this public repo. None of the auth can be scripted.
@@ -797,7 +797,7 @@ if [[ "$OPT_CLAUDE" == true ]]; then
   install_claude_plugins
 fi
 
-# ─── 11c. Project-pulse context sources (Glean / Fellow / Slack CLIs) ─────────
+# ─── 11c. The pulse's sources (Glean / Fellow / Slack CLIs) ──────────────────
 
 if [[ "$OPT_CLAUDE" == true ]]; then
   setup_pulse_sources
