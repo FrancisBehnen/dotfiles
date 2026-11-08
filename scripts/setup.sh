@@ -553,7 +553,7 @@ setup_pulse_sources() {
     info "Setting up Slack source (private script)..."
     "$HOME/.config/slack-mcp/setup-slack.sh" || warn "Slack source setup reported an issue."
   else
-    warn "Slack headless setup is in dotfiles-private (~/.claude/skills/project-context-sync/SLACK-HEADLESS.private.md) — script not found; skipping."
+    warn "Slack headless setup is in dotfiles-private (~/.config/slack-mcp/SLACK-HEADLESS.private.md) — script not found; skipping."
   fi
 
   warn "Pulse sources need one-time INTERACTIVE auth: 'glean auth login'; Fellow 'uvx mcp2cli --mcp https://fellow.app/mcp --oauth --list' (no --refresh); Slack token extraction per dotfiles-private."
