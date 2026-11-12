@@ -1,0 +1,44 @@
+#!/bin/sh
+# Periodically save the tmux session via tmux-resurrect.
+#
+# Why this exists: this machine uses iTerm's tmux integration (`tmux -CC`),
+# which hides tmux's status line. tmux-continuum's automatic save is driven by
+# the status-line refresh, so under -CC it never fires and nothing is ever
+# written to restore after a reboot. This script is invoked by a per-user
+# LaunchAgent (no admin needed) every few minutes to perform the save directly.
+# tmux-continuum's @continuum-restore then repopulates "main" on next start.
+#
+# Installed and loaded by scripts/setup.sh.
+
+TMUX_BIN="$HOME/macports/bin/tmux"
+[ -x "$TMUX_BIN" ] || TMUX_BIN="$(command -v tmux 2>/dev/null)"
+[ -n "$TMUX_BIN" ] || exit 0
+
+SAVE="$HOME/.tmux/plugins/tmux-resurrect/scripts/save.sh"
+[ -x "$SAVE" ] || exit 0
+
+uid="$(id -u)"
+
+# A LaunchAgent's $TMPDIR (per-user /var/folders/...) often differs from the
+# dir the interactive/-CC tmux server used for its socket (this MacPorts build
+# uses /tmp). Probe the likely locations and save against whichever holds a
+# live server.
+try_save() {
+    sock="$1"
+    [ -S "$sock" ] || return 1
+    "$TMUX_BIN" -S "$sock" has-session 2>/dev/null || return 1
+    "$TMUX_BIN" -S "$sock" run-shell "$SAVE quiet"
+    return 0
+}
+
+for dir in "$TMUX_TMPDIR" /tmp "$TMPDIR"; do
+    [ -n "$dir" ] || continue
+    try_save "${dir%/}/tmux-$uid/default" && exit 0
+done
+
+# Fall back to scanning per-user temp dirs (covers /var/folders/.../T).
+for sock in /var/folders/*/*/T/tmux-"$uid"/default; do
+    try_save "$sock" && exit 0
+done
+
+exit 0
