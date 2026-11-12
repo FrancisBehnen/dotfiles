@@ -617,6 +617,75 @@ install_cli_tools() {
   info "Agent CLI tools installation complete."
 }
 
+install_voice() {
+  # Local voice for Claude Code via VoiceMode: Whisper STT (:2022) and Kokoro TTS
+  # (:8880) as launchd services, plus the kokoro-memwatch watcher. The VoiceMode CLI
+  # itself comes from the Brewfile (uv "voice-mode"); its settings are
+  # ~/.voicemode/voicemode.env from the PRIVATE repo. dutch-tts (:8893) is not a
+  # service: /talk starts it on demand, so only its macOS voices are checked here.
+  # Every step checks first, so re-runs are safe.
+  local vm env uid
+  vm="$(command -v voicemode || echo "$HOME/.local/bin/voicemode")"
+  env="$HOME/.voicemode/voicemode.env"
+  uid="$(id -u)"
+  if [[ ! -x "$vm" ]]; then
+    warn "VoiceMode CLI not found (Brewfile: uv \"voice-mode\") — skipping voice setup."
+    return
+  fi
+  [[ -f "$env" ]] || warn "No $env (private repo) — VoiceMode will use its defaults."
+
+  info "Setting up local voice (VoiceMode: Whisper STT, Kokoro TTS)..."
+  mkdir -p "$HOME/.voicemode/logs"
+  # The installers may write their own defaults to voicemode.env; keep ours.
+  [[ -f "$env" ]] && cp "$env" "$env.setup-keep"
+
+  local svc
+  for svc in whisper kokoro; do
+    if [[ -d "$HOME/.voicemode/services/$svc" ]]; then
+      info "  $svc already installed."
+    else
+      info "  Installing $svc (downloads models; takes a while)..."
+      "$vm" service install "$svc" </dev/null >/dev/null 2>&1 \
+        || warn "  Failed to install $svc — run by hand: voicemode service install $svc"
+    fi
+    if [[ ! -f "$HOME/Library/LaunchAgents/com.voicemode.$svc.plist" ]]; then
+      "$vm" service enable "$svc" </dev/null >/dev/null 2>&1 \
+        || warn "  Could not enable $svc at login — run: voicemode service enable $svc"
+    fi
+  done
+
+  if [[ -f "$env.setup-keep" ]]; then
+    cmp -s "$env" "$env.setup-keep" || { cp "$env.setup-keep" "$env"; info "  Restored our voicemode.env."; }
+    rm -f "$env.setup-keep"
+  fi
+
+  # The Whisper model named in voicemode.env (the service install only fetches a default).
+  local model
+  model="$(grep -E '^VOICEMODE_WHISPER_MODEL=' "$env" 2>/dev/null | tail -1 | cut -d= -f2)"
+  if [[ -n "$model" && ! -f "$HOME/.voicemode/services/whisper/models/ggml-$model.bin" ]]; then
+    info "  Downloading Whisper model $model..."
+    "$vm" whisper model "$model" </dev/null >/dev/null 2>&1 \
+      || warn "  Failed to fetch Whisper model $model — run: voicemode whisper model $model"
+  fi
+
+  # kokoro-memwatch: its plist is tracked in ~/Library/LaunchAgents; load it now
+  # instead of waiting for the next login.
+  local label="com.francisbehnen.kokoro-memwatch"
+  local plist="$HOME/Library/LaunchAgents/$label.plist"
+  if [[ -f "$plist" ]] && ! launchctl print "gui/$uid/$label" >/dev/null 2>&1; then
+    launchctl bootstrap "gui/$uid" "$plist" 2>/dev/null \
+      || warn "  Could not load $label — run: launchctl bootstrap gui/$uid $plist"
+  fi
+
+  # dutch-tts needs the macOS voices Claire (Enhanced) and Xander; they can't be
+  # downloaded from a script.
+  if [[ -x "$HOME/scripts/dutch-tts/dutch-tts" ]] \
+     && ! "$HOME/scripts/dutch-tts/dutch-tts" setup >/dev/null 2>&1; then
+    warn "  Dutch voices missing: System Settings > Accessibility > Spoken Content > System voice > Manage Voices > Dutch > Claire (Enhanced) and Xander."
+  fi
+  info "Voice setup complete. Check with: voicemode service status"
+}
+
 link_preferences() {
   local pref_dir="$HOME/support_and_preference_files_to_migrate"
   if [[ -f "$pref_dir/link_preferences.zsh" ]]; then
@@ -717,6 +786,7 @@ fi
 OPT_CLAUDE=false
 OPT_COPILOT=false
 OPT_PREFS=false
+OPT_VOICE=false
 
 echo ""
 echo "Set up Claude Code? (y/n)"
@@ -727,6 +797,11 @@ echo ""
 echo "Set up GitHub Copilot CLI? (y/n)"
 read -r answer
 [[ "$answer" =~ ^[Yy]$ ]] && OPT_COPILOT=true
+
+echo ""
+echo "Set up local voice (VoiceMode: Whisper STT + Kokoro TTS, several GB of models)? (y/n)"
+read -r answer
+[[ "$answer" =~ ^[Yy]$ ]] && OPT_VOICE=true
 
 echo ""
 echo "Link application preference files (BetterTouchTool, iTerm2, etc.)? (y/n)"
@@ -839,6 +914,12 @@ fi
 
 if [[ "$OPT_CLAUDE" == true ]]; then
   install_cli_tools
+fi
+
+# ─── 11e. Local voice (VoiceMode STT/TTS) ─────────────────────────────────────
+
+if [[ "$OPT_VOICE" == true ]]; then
+  install_voice
 fi
 
 # ─── 12. GitHub Copilot CLI ──────────────────────────────────────────────────

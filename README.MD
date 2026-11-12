@@ -65,6 +65,7 @@ The setup script will:
 - Install tmux plugin manager (tpm)
 - Offer to set up coding agents (Claude Code, GitHub Copilot CLI)
 - Offer to link application preference files
+- Offer to set up local voice. This installs VoiceMode's Whisper STT and Kokoro TTS as login services, the Whisper model from `~/.voicemode/voicemode.env` (private repo), and the kokoro-memwatch agent. For Dutch `/talk`, install the macOS voices Claire (Enhanced) and Xander by hand: System Settings > Accessibility > Spoken Content > System voice > Manage Voices > Dutch.
 
 After the script completes:
 1. Set your terminal font to **MesloLGS NF**

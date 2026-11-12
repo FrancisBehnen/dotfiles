@@ -5,6 +5,8 @@
 # Install all:  scripts/setup.sh → install_agent_skills() runs `bunx skills add <line>`
 #               for every line here and in Skillfile.private. Lines are word-split,
 #               so a line may carry flags (e.g. `owner/repo --copy`).
+#               Every entry must include `-g -y`: setup.sh is non-interactive,
+#               and without these flags installs may prompt/cancel or use project scope.
 # Update all:   bunx skills update -g   (keep -g: run from ~ the default scope is
 #               "project", which updates only ~/skills-lock.json)
 # List:         bunx skills ls -g
@@ -28,10 +30,10 @@
 #     dotfiles-private), not here — same split as Pluginfile/Pluginfile.private.
 #     setup.sh reads both.
 
-https://github.com/DitisAlex/agent-skills/tree/add-ai-service-router-migration-skill
-knowsuchagency/mcp2cli
-mattpocock/skills
-herdrdev/herdr
+https://github.com/DitisAlex/agent-skills/tree/add-ai-service-router-migration-skill -g -y
+knowsuchagency/mcp2cli -g -y
+mattpocock/skills -g -y
+herdrdev/herdr -g -y
 # json-canvas + obsidian-cli (claude-obsidian plugin covers only defuddle/bases/markdown)
 kepano/obsidian-skills -g -y
 vercel-labs/skills --skill find-skills -g -y
