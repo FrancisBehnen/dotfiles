@@ -13,8 +13,8 @@
 #   - system memory: free % (memory_pressure -Q), pressure level, swap used/total
 # and then:
 #   - NOTIFY (macOS notification, at most once per 15 min per condition) when
-#     Kokoro footprint > 8 GiB, system free < 15 %, or swap used > 80 % of total
-#   - RESTART Kokoro (launchctl kickstart -k) when its footprint > 10 GiB, but only when
+#     Kokoro footprint > 6 GiB, system free < 15 %, or swap used > 80 % of total
+#   - RESTART Kokoro (launchctl kickstart -k) when its footprint > 8 GiB, but only when
 #     the VoiceMode conch is free AND no TTS request is in flight (no ESTABLISHED
 #     connection on :8880 and the Kokoro log quiet for 5 s). Otherwise it retries on
 #     the next run. At most one restart per 10 min. Notifies after restarting.
@@ -39,8 +39,8 @@ LOG="$VM_DIR/logs/memwatch.log"
 STATE_DIR="$VM_DIR/memwatch.state"
 DRYRUN_MARKER="$VM_DIR/memwatch.dry-run"
 
-NOTIFY_RSS_MIB=8192     # 8 GiB, on footprint (Activity Monitor) since 2026-10-10
-RESTART_RSS_MIB=10240   # 10 GiB, on footprint (Activity Monitor) since 2026-10-10
+NOTIFY_RSS_MIB=6144     # 6 GiB, on footprint (Activity Monitor) since 2026-10-12
+RESTART_RSS_MIB=8192    # 8 GiB, on footprint (Activity Monitor) since 2026-10-12
 FREE_PCT_MIN=15
 SWAP_PCT_MAX=80
 NOTIFY_COOLDOWN=900     # 15 min per condition
