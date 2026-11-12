@@ -1,0 +1,9 @@
+# CLIfile.work — agent CLI tools for WORK machines only.
+#
+# Same format as CLIfile (<name> | <verify-cmd> | <install-cmd>). Read by
+# install_cli_tools() in scripts/setup.sh only when the machine profile
+# (~/.config/dotfiles/profile) is "work". Interactive auth is never scripted.
+
+# twg (Atlassian Teamwork Graph CLI, ~/.local/bin); it writes the twg-* skills.
+# Official public installer. One-time interactive auth: `twg login`.
+twg                 | command -v twg                                         | bash -c "$(curl -fsSL --retry 2 https://teamwork-graph.atlassian.com/cli/install)"

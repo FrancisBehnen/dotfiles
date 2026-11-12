@@ -1,0 +1,6 @@
+# Skillfile.work — agent skills for WORK machines only.
+#
+# Same format as Skillfile. Read by install_agent_skills() in scripts/setup.sh
+# only when the machine profile (~/.config/dotfiles/profile) is "work".
+
+gleanwork/glean-cli -g -y

@@ -32,3 +32,10 @@ https://github.com/DitisAlex/agent-skills/tree/add-ai-service-router-migration-s
 knowsuchagency/mcp2cli
 mattpocock/skills
 herdrdev/herdr
+# json-canvas + obsidian-cli (claude-obsidian plugin covers only defuddle/bases/markdown)
+kepano/obsidian-skills -g -y
+vercel-labs/skills --skill find-skills -g -y
+#
+# Work-only skills (glean-cli, ...) go in Skillfile.work, read only on a work machine.
+# The plannotator core skills and twg-* skills are written by their CLIs (CLIfile /
+# CLIfile.work), not installed from here.

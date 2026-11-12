@@ -417,6 +417,8 @@ npm install -g ctx7@latest                   # ctx7 (what `ctx7 upgrade` runs)
 bun update -g --latest                       # defuddle + playwright-cli (both bun globals, per CLIfile)
 playwright-cli install-browser chromium      # the Chromium build the new playwright-cli expects
 # glean CLI: covered by `brew upgrade` above (or `glean update`).
+bash -c "$(curl -fsSL https://plannotator.ai/install.sh)"  # plannotator (re-run installer; refreshes its skills)
+twg upgrade                                  # work machines only (CLIfile.work)
 # playwright-cli's own skill is upstream content, untracked, and goes stale on every
 # upgrade (the CLI then prints a "skill does not match" banner). Our additions live in
 # the tracked render-and-inspect skill, so refreshing it loses nothing:

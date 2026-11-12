@@ -157,6 +157,13 @@ install_brew_packages() {
     return
   fi
 
+  # Work-only formulae stay in the Brewfile (`brew bundle dump` rewrites it) and are
+  # skipped on a home machine instead.
+  if [[ "$IS_WORK" != true ]]; then
+    export HOMEBREW_BUNDLE_BREW_SKIP="gleanwork/tap/glean-cli"
+    info "Home machine — skipping work-only formulae: $HOMEBREW_BUNDLE_BREW_SKIP"
+  fi
+
   if $IS_ADMIN; then
     info "Installing packages from Brewfile..."
     brew bundle --file="$brewfile" || warn "Some Brewfile items may have failed."
@@ -443,6 +450,7 @@ install_agent_skills() {
   # (dotfiles-private, e.g. skills hosted in the internal Coolblue org).
   # Mirrors install_claude_plugins.
   local skillfiles=("$HOME/Skillfile" "$HOME/Skillfile.private")
+  [[ "$IS_WORK" == true ]] && skillfiles+=("$HOME/Skillfile.work")
   local any=false
   for sf in "${skillfiles[@]}"; do [[ -f "$sf" ]] && any=true; done
   if [[ "$any" != true ]]; then
@@ -486,6 +494,7 @@ install_claude_plugins() {
   fi
 
   local pluginfiles=("$HOME/Pluginfile" "$HOME/Pluginfile.private")
+  [[ "$IS_WORK" == true ]] && pluginfiles+=("$HOME/Pluginfile.work")
   local any=false
   for pf in "${pluginfiles[@]}"; do [[ -f "$pf" ]] && any=true; done
   if [[ "$any" != true ]]; then
@@ -523,8 +532,10 @@ setup_pulse_sources() {
   # here; the Slack source is reproduced by a private script (dotfiles-private), since its
   # setup is intentionally kept out of this public repo. None of the auth can be scripted.
 
-  # Glean CLI
-  if command_exists glean; then
+  # Glean CLI (work machines only)
+  if [[ "$IS_WORK" != true ]]; then
+    info "Home machine — skipping Glean CLI (work-only)."
+  elif command_exists glean; then
     info "Glean CLI already installed."
   elif command_exists brew; then
     info "Installing Glean CLI..."
@@ -566,14 +577,18 @@ install_cli_tools() {
   # install_agent_skills / install_claude_plugins.
   #   <name> | <verify-cmd> | <install-cmd>
   # verify-cmd decides idempotency (exit 0 => already installed, skip).
+  # CLIfile.work (work-only tools, e.g. twg) is read only when IS_WORK=true.
   # Glean/Fellow/Slack are intentionally NOT here — see setup_pulse_sources.
-  local clifile="$HOME/CLIfile"
+  local clifiles=("$HOME/CLIfile")
+  [[ "$IS_WORK" == true ]] && clifiles+=("$HOME/CLIfile.work")
+  local clifile
+  for clifile in "${clifiles[@]}"; do
   if [[ ! -f "$clifile" ]]; then
-    warn "No CLIfile found at $clifile — skipping CLI tool installation."
-    return
+    warn "No CLIfile found at $clifile — skipping."
+    continue
   fi
 
-  info "Installing agent CLI tools from CLIfile..."
+  info "Installing agent CLI tools from $(basename "$clifile")..."
   # Read via a process-substitution fd so an install command's own stdin can't
   # steal the next line (the same bug that bit the Skillfile restore loop).
   while IFS='|' read -r name verify install; do
@@ -598,6 +613,7 @@ install_cli_tools() {
     eval "$install" </dev/null >/dev/null 2>&1 \
       || warn "  Failed to install $name — run by hand: $install"
   done < <(grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$clifile")
+  done
   info "Agent CLI tools installation complete."
 }
 
@@ -716,6 +732,22 @@ echo ""
 echo "Link application preference files (BetterTouchTool, iTerm2, etc.)? (y/n)"
 read -r answer
 [[ "$answer" =~ ^[Yy]$ ]] && OPT_PREFS=true
+
+# Machine profile: work-only tools (Glean, TWG) come from the *.work files and are
+# skipped on a home machine. The answer is remembered (untracked) so re-runs don't ask.
+PROFILE_FILE="$HOME/.config/dotfiles/profile"
+IS_WORK=false
+if [[ -f "$PROFILE_FILE" ]]; then
+  [[ "$(cat "$PROFILE_FILE")" == "work" ]] && IS_WORK=true
+  info "Machine profile: $(cat "$PROFILE_FILE") (from $PROFILE_FILE)."
+else
+  echo ""
+  echo "Is this a work machine? Installs the work-only skills, plugins and CLIs (Glean, TWG). (y/n)"
+  read -r answer
+  [[ "$answer" =~ ^[Yy]$ ]] && IS_WORK=true
+  mkdir -p "$(dirname "$PROFILE_FILE")"
+  if [[ "$IS_WORK" == true ]]; then echo work > "$PROFILE_FILE"; else echo home > "$PROFILE_FILE"; fi
+fi
 
 # ─── All interactive steps complete ──────────────────────────────────────────
 

@@ -1,0 +1,8 @@
+# Pluginfile.work — Claude Code marketplaces/plugins for WORK machines only.
+#
+# Same format as Pluginfile. Read by install_claude_plugins() in scripts/setup.sh
+# only when the machine profile (~/.config/dotfiles/profile) is "work".
+
+marketplace glean-plugins-vnext gleanwork/glean-plugins-vnext
+
+plugin glean-vnext@glean-plugins-vnext

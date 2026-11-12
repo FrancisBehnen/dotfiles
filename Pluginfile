@@ -20,7 +20,6 @@
 marketplace claude-plugins-official anthropics/claude-plugins-official
 marketplace agricidaniel-claude-obsidian AgriciDaniel/claude-obsidian
 marketplace plannotator backnotprop/plannotator
-marketplace glean-plugins-vnext gleanwork/glean-plugins-vnext
 marketplace voicemode mbailey/voicemode
 
 # ─── Plugins ─────────────────────────────────────────────────────────────────
@@ -39,5 +38,6 @@ plugin skill-creator@claude-plugins-official
 plugin typescript-lsp@claude-plugins-official
 plugin claude-obsidian@agricidaniel-claude-obsidian
 plugin plannotator@plannotator
-plugin glean-vnext@glean-plugins-vnext
 plugin voicemode@voicemode
+#
+# Work-only plugins (glean-vnext, ...) go in Pluginfile.work.

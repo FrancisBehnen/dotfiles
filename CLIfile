@@ -30,3 +30,8 @@ ctx7                | ctx7 --version                                         | n
 defuddle            | defuddle --version                                     | bun add -g defuddle
 playwright-cli      | playwright-cli --version                               | bun add -g @playwright/cli@latest
 playwright-browsers | ls "$HOME/Library/Caches/ms-playwright"/chromium-* >/dev/null 2>&1 | npx --yes playwright install chromium
+# plannotator binary (~/.local/bin); it writes the core plannotator skills
+# (plannotator, -annotate, -inbox, -last, -review). Official installer.
+plannotator         | command -v plannotator                                 | bash -c "$(curl -fsSL https://plannotator.ai/install.sh)"
+#
+# Work-only CLIs (twg, ...) go in CLIfile.work, read only on a work machine.
