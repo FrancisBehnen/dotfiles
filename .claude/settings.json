@@ -92,6 +92,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "opus",
   "skillOverrides": {
     "ai-service-router-migration": "off",
     "code-review": "off",
@@ -115,6 +116,9 @@
   "deniedMcpServers": [
     {
       "serverName": "google-cloud-bigquery"
+    },
+    {
+      "serverName": "claude.ai Glean"
     }
   ],
   "hooks": {
@@ -145,13 +149,15 @@
     "feature-dev@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false,
     "hookify@claude-plugins-official": false,
-    "plannotator@plannotator": false,
+    "plannotator@plannotator": true,
     "pr-review-toolkit@claude-plugins-official": false,
     "pyright-lsp@claude-plugins-official": false,
     "skill-creator@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": false,
     "claudish-to-english@claudish-tts": false,
-    "glean-vnext@glean-plugins-vnext": true
+    "glean-vnext@glean-plugins-vnext": true,
+    "voicemode@voicemode": true,
+    "cc-plugin-you-should-know@builtin": true
   },
   "extraKnownMarketplaces": {
     "agricidaniel-claude-obsidian": {
@@ -188,6 +194,12 @@
       "source": {
         "source": "github",
         "repo": "gleanwork/glean-plugins-vnext"
+      }
+    },
+    "voicemode": {
+      "source": {
+        "source": "github",
+        "repo": "mbailey/voicemode"
       }
     }
   },
@@ -273,6 +285,7 @@
       "effortLevel": "high"
     }
   },
+  "advisorModel": "fable",
   "tui": "fullscreen",
   "voice": {
     "enabled": true,

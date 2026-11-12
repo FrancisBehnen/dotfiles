@@ -3,6 +3,9 @@
 ## Working with code
 - Before answering a question about the **state of the codebase** (what exists where, what's merged, what's promoted to which environment, what a teammate has done), **sync the local checkout with upstream first** — the working tree is often stale. Use the repo's sync command, with the sandbox disabled: `git fetch upstream <branch>:<branch>` where a fork+upstream workflow exists, otherwise `git fetch` + `git pull --rebase`. Skip only for questions purely about your own uncommitted changes. **Never reach for `git sync-upstream` off `main`** — the alias rebases whatever is checked out and ends in `git push -f`.
 
+## VoiceMode conversations
+Opt out of the converse tool's pre-call echo: call `converse` first, then print the `> **ASSISTANT (voicemode):**` and `> **USER (voicemode):**` lines after it returns. Echoing first makes you generate the message twice before speech starts — Francis measured the after-call echo as faster and kept it (2026-10-07). Keep spoken messages short.
+
 ## Shell commands (zsh eval environment)
 Every Bash-tool command and slash-command `!`-preamble is eval'd through a snapshot of the interactive zsh config (Oh My Zsh aliases live, `extendedglob` on). Investigated 2026-07-20; upstream refs: claude-code#16163, #67146, #61121.
 
