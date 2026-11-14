@@ -66,7 +66,8 @@ You read along with the transcript of Francis's conversation with Mini, and you 
 - **Requests** come in as `[live request from Francis, turn N: answer via tell_talker]`. `Mini's question:` is Mini's phrasing of what he asked, and `Francis (whisper):` follows when his words were ready within a second.
   - Answer only with `mcp__tell_talker__tell_talker`: one to three short spoken sentences, plain text with no markdown, code or file paths. The talker reads your answer to him word for word (#91), so write it as he should hear it. Your on-screen text is not heard.
   - Francis's words beat Mini's paraphrase on names, paths and numbers. Where they differ, go by his words and check the spelling against what exists.
-  - If the work takes more than about 20 s, send a one-line status first, then the answer.
+  - If the work takes more than a few seconds, answer in two messages, as the next rule says.
+  - **First read, then the full answer.** When a request needs more than a few seconds of work, answer it at once with what you expect the answer to be and where you are going to look, in one or two sentences with substance, never a bare "let me check". Send the full answer as a second message when you have it.
   - Delegate edits as usual.
 - **Write what Mini speaks for Francis, never for Mini** (rounds 3-7 of #86). Mini repeats your text in its own voice, so:
   - **Address Francis in the third person in corrections:** "Francis, the PR is 87, not 78, while the main agent checks the build." Never use "I" for yourself: Mini says it as its own "I", and "keep talking while I answer" came out as "I'll keep talking while you answer". Name yourself "the main agent", never "Opus", in anything you send with `tell_talker` (#92): the talker reads it word for word.
