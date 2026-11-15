@@ -661,9 +661,17 @@ install_voice() {
     rm -f "$env.setup-keep"
   fi
 
-  # The Whisper model named in voicemode.env (the service install only fetches a default).
+  # Per-machine settings (~/.voicemode.env, untracked) and the Intel-Mac repairs. Every
+  # VoiceMode install regenerates the files it patches, so it runs after the installs.
+  if [[ -x "$HOME/scripts/voicemode-machine-fixes" ]]; then
+    "$HOME/scripts/voicemode-machine-fixes" \
+      || warn "  voicemode-machine-fixes reported a problem — re-run: ~/scripts/voicemode-machine-fixes"
+  fi
+
+  # The effective Whisper model: ~/.voicemode.env (this machine) overrides voicemode.env
+  # (shared). The service install only fetches a default model.
   local model
-  model="$(grep -E '^VOICEMODE_WHISPER_MODEL=' "$env" 2>/dev/null | tail -1 | cut -d= -f2)"
+  model="$(grep -hE '^VOICEMODE_WHISPER_MODEL=' "$env" "$HOME/.voicemode.env" 2>/dev/null | tail -1 | cut -d= -f2)"
   if [[ -n "$model" && ! -f "$HOME/.voicemode/services/whisper/models/ggml-$model.bin" ]]; then
     info "  Downloading Whisper model $model..."
     "$vm" whisper model "$model" </dev/null >/dev/null 2>&1 \

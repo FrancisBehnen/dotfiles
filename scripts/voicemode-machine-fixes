@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# voicemode-machine-fixes — per-machine VoiceMode settings and Intel-Mac repairs.
+#
+# The shared VoiceMode settings live in ~/.voicemode/voicemode.env (PRIVATE repo, same
+# on every machine). Per-machine overrides go in ~/.voicemode.env (untracked). VoiceMode's
+# Python side already reads that file natively: its config cascade walks up from the cwd
+# and picks up $HOME/.voicemode.env after the global file. This script makes the Whisper
+# start script read it too, and on Intel Macs it applies the fixes VoiceMode needs there:
+#
+#   Whisper  large-v3-turbo is far too slow on an Intel CPU (24 s for an 11 s clip), and
+#            whisper.cpp's Metal path garbles output there (245 s, nonsense). Intel gets
+#            base + CPU-only: ~1.2 s for the same clip. (Measured 2026-11-15.)
+#   Kokoro   Intel Macs max out at PyTorch 2.2.2. transformers >= 4.47 refuses torch < 2.4
+#            and numpy 2 breaks torch 2.2.2, so pin numpy<2 and transformers<4.47 in its
+#            venv. Intel has no Apple GPU (MPS), so run a CPU-only copy of start-gpu_mac.sh.
+#   Any Mac  Kokoro's LaunchAgent PATH lacks /opt/local/bin; add it when uv comes from MacPorts.
+#
+# Every VoiceMode (re)install regenerates the files patched here, so setup.sh's
+# install_voice runs this after installing; run it by hand after `voicemode service install`.
+# Idempotent: it checks before every change and restarts only the services it changed.
+# On Apple Silicon with no ~/.voicemode.env, it only adds the Whisper hook (a no-op).
+set -o nounset -o pipefail
+
+VM_DIR="$HOME/.voicemode"
+LOCAL_ENV="$HOME/.voicemode.env"
+WHISPER_START="$VM_DIR/services/whisper/bin/start-whisper-server.sh"
+KOKORO_DIR="$VM_DIR/services/kokoro"
+KOKORO_PLIST="$HOME/Library/LaunchAgents/com.voicemode.kokoro.plist"
+KOKORO_CPU_START="$KOKORO_DIR/start-cpu_intel_mac.sh"
+MARK="voicemode-machine-fixes"
+UID_="$(id -u)"
+
+info() { printf '[voice-fixes] %s\n' "$*"; }
+warn() { printf '[voice-fixes] WARNING: %s\n' "$*" >&2; }
+
+is_intel_mac() {
+  # hw.optional.arm64 is 1 on Apple Silicon even under Rosetta; uname -m is not.
+  [[ "$(uname -s)" == Darwin ]] && [[ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" != 1 ]]
+}
+
+restart_whisper=false
+restart_kokoro=false
+
+# ─── 1. Machine-local overrides (seeded once; edit by hand afterwards) ─────────
+
+seed_local_env() {
+  is_intel_mac || return 0
+  if [[ ! -f "$LOCAL_ENV" ]]; then
+    cat > "$LOCAL_ENV" <<'EOF'
+# Machine-local VoiceMode overrides — untracked; layered over ~/.voicemode/voicemode.env.
+# Read by VoiceMode itself (cwd cascade) and by the Whisper start script (patched by
+# ~/scripts/voicemode-machine-fixes). Seeded for an Intel Mac; edit freely.
+
+# Intel CPU: large-v3-turbo is too slow and the Metal path garbles output (2026-11-15).
+# Keep a multilingual model: *.en models break Dutch sessions.
+VOICEMODE_WHISPER_MODEL=base
+VOICEMODE_WHISPER_NO_GPU=true
+EOF
+    info "Created $LOCAL_ENV (Intel: Whisper base, CPU-only)."
+    restart_whisper=true
+  fi
+}
+
+# ─── 2. Whisper: read ~/.voicemode.env, honour VOICEMODE_WHISPER_NO_GPU ─────────
+
+patch_whisper() {
+  [[ -f "$WHISPER_START" ]] || { info "Whisper not installed — skipping."; return 0; }
+  grep -q "$MARK" "$WHISPER_START" && return 0
+
+  local anchor='MODEL_NAME="${VOICEMODE_WHISPER_MODEL:-base}"'
+  if ! grep -qF "$anchor" "$WHISPER_START" || [[ "$(grep -c -- '    --convert' "$WHISPER_START")" -lt 1 ]]; then
+    warn "Whisper start script changed upstream; patch anchors not found. Not patched: $WHISPER_START"
+    return 1
+  fi
+  cp "$WHISPER_START" "$WHISPER_START.orig"
+  python3 - "$WHISPER_START" "$anchor" "$MARK" <<'PY'
+import sys
+path, anchor, mark = sys.argv[1:]
+s = open(path).read()
+hook = (
+    f"# >>> {mark}: machine-local overrides from ~/.voicemode.env >>>\n"
+    'voicemode_load_env_file "$HOME/.voicemode.env"\n'
+    'WHISPER_GPU_FLAG=""\n'
+    '[ "${VOICEMODE_WHISPER_NO_GPU:-false}" = true ] && WHISPER_GPU_FLAG="--no-gpu"\n'
+    f"# <<< {mark} <<<\n"
+)
+s = s.replace(anchor, hook + anchor, 1)
+s = s.replace("    --convert", "    $WHISPER_GPU_FLAG \\\n    --convert")
+open(path, "w").write(s)
+PY
+  if bash -n "$WHISPER_START"; then
+    info "Patched Whisper start script (reads ~/.voicemode.env; --no-gpu when asked)."
+    restart_whisper=true
+  else
+    warn "Patched Whisper start script failed a syntax check; restored the original."
+    mv "$WHISPER_START.orig" "$WHISPER_START"
+    return 1
+  fi
+}
+
+# ─── 3. Kokoro ─────────────────────────────────────────────────────────────────
+
+fix_kokoro_path() {
+  [[ -f "$KOKORO_PLIST" && -x /opt/local/bin/uv ]] || return 0
+  local path
+  path="$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:PATH' "$KOKORO_PLIST" 2>/dev/null)" || return 0
+  [[ ":$path:" == *":/opt/local/bin:"* ]] && return 0
+  /usr/libexec/PlistBuddy -c "Set :EnvironmentVariables:PATH $HOME/.local/bin:/opt/local/bin:${path#"$HOME/.local/bin:"}" "$KOKORO_PLIST"
+  info "Added /opt/local/bin (MacPorts uv) to Kokoro's LaunchAgent PATH."
+  restart_kokoro=true
+}
+
+fix_kokoro_intel() {
+  is_intel_mac || return 0
+  [[ -d "$KOKORO_DIR/.venv" && -f "$KOKORO_PLIST" ]] || { info "Kokoro not installed — skipping."; return 0; }
+  local py="$KOKORO_DIR/.venv/bin/python" uv
+  uv="$(command -v uv || echo /opt/local/bin/uv)"
+
+  # Pin the libraries that reject PyTorch 2.2.2 (the last Intel-Mac build).
+  if ! "$py" -c 'import numpy, transformers, sys; sys.exit(0 if int(numpy.__version__.split(".")[0]) < 2 and tuple(map(int, transformers.__version__.split(".")[:2])) < (4, 47) else 1)' 2>/dev/null; then
+    if "$uv" pip install --python "$py" 'numpy<2' 'transformers<4.47' >/dev/null 2>&1; then
+      info "Pinned numpy<2 and transformers<4.47 in Kokoro's venv (PyTorch 2.2.2)."
+      restart_kokoro=true
+    else
+      warn "Could not pin Kokoro's numpy/transformers — run: $uv pip install --python $py 'numpy<2' 'transformers<4.47'"
+    fi
+  fi
+
+  # CPU-only start script (no MPS on Intel), regenerated from upstream's Mac script.
+  if [[ -f "$KOKORO_DIR/start-gpu_mac.sh" ]]; then
+    local tmp
+    tmp="$(mktemp)"
+    sed -e 's/^export USE_GPU=true/export USE_GPU=false/' \
+        -e 's/^export DEVICE_TYPE=mps/export DEVICE_TYPE=cpu/' \
+        -e '/PYTORCH_ENABLE_MPS_FALLBACK/d' -e '/Enable MPS fallback/d' \
+        "$KOKORO_DIR/start-gpu_mac.sh" > "$tmp"
+    if ! cmp -s "$tmp" "$KOKORO_CPU_START"; then
+      mv "$tmp" "$KOKORO_CPU_START"; chmod +x "$KOKORO_CPU_START"
+      info "Wrote $KOKORO_CPU_START (CPU-only)."
+      restart_kokoro=true
+    else
+      rm -f "$tmp"
+    fi
+  fi
+  local prog
+  prog="$(/usr/libexec/PlistBuddy -c 'Print :ProgramArguments:0' "$KOKORO_PLIST" 2>/dev/null)"
+  if [[ -x "$KOKORO_CPU_START" && "$prog" != "$KOKORO_CPU_START" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :ProgramArguments:0 $KOKORO_CPU_START" "$KOKORO_PLIST"
+    info "Pointed Kokoro's LaunchAgent at the CPU-only start script."
+    restart_kokoro=true
+  fi
+}
+
+# ─── 4. Restart what changed ────────────────────────────────────────────────────
+
+reload_agent() {  # plist edits need a reload, not just a kickstart
+  local label="$1" plist="$HOME/Library/LaunchAgents/$1.plist"
+  [[ -f "$plist" ]] || return 0
+  launchctl bootout "gui/$UID_/$label" 2>/dev/null
+  launchctl bootstrap "gui/$UID_" "$plist" 2>/dev/null \
+    && info "Restarted $label." \
+    || warn "Could not reload $label — run: launchctl bootstrap gui/$UID_ $plist"
+}
+
+seed_local_env
+patch_whisper
+fix_kokoro_path
+fix_kokoro_intel
+
+if [[ "${1:-}" == "--no-restart" ]]; then
+  $restart_whisper && info "Whisper changed — restart it: launchctl kickstart -k gui/$UID_/com.voicemode.whisper"
+  $restart_kokoro && info "Kokoro changed — reload it: launchctl bootout gui/$UID_/com.voicemode.kokoro; launchctl bootstrap gui/$UID_ $KOKORO_PLIST"
+else
+  $restart_whisper && reload_agent com.voicemode.whisper
+  $restart_kokoro && reload_agent com.voicemode.kokoro
+fi
+exit 0
