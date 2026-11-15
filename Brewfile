@@ -6,8 +6,6 @@ tap "zdk/tools"
 brew "git-filter-repo"
 # Agent multiplexer that lives in your terminal
 brew "herdr"
-# Open-source, cross-platform JavaScript runtime environment
-brew "node"
 # Create, run, and share large language models (LLMs)
 brew "ollama", restart_service: :changed
 # Execute binaries from Python packages in isolated environments

@@ -42,5 +42,7 @@ gettext
 gettext-runtime
 gettext-tools-libs
 gh
+nodejs24
+npm11
 tmux
 uv

@@ -325,15 +325,17 @@ install_node() {
     return
   fi
 
+  # MacPorts is the single source of node (nodejs24 + npm11, in requested_ports);
+  # Homebrew only when MacPorts is absent.
   info "Installing Node.js..."
-  if command_exists brew; then
-    brew install node
-  elif command_exists port; then
+  if command_exists port; then
     if $IS_ADMIN; then
-      sudo port install nodejs22
+      sudo port install nodejs24 npm11
     else
-      port install nodejs22
+      port install nodejs24 npm11
     fi
+  elif command_exists brew; then
+    brew install node
   else
     warn "Could not install Node.js automatically."
     warn "Install manually: https://nodejs.org/ or use fnm/nvm."
