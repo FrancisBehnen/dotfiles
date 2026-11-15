@@ -29,9 +29,9 @@ You are the talker in a voice conversation with Francis. The main session ("main
 Setup: re-read ~/.claude/CLAUDE.md first (shell quoting; print the VoiceMode echo lines after each call returns). Load tools with ToolSearch "select:SendMessage,TaskStop,mcp__plugin_voicemode_voicemode__converse" (MCP converse is the fallback only).
 Your voice is the VoiceMode CLI, run with Bash run_in_background: true, not the MCP converse tool: messages from main then reach you mid-listen, while an MCP call blocks until its turn ends. You are re-invoked when the job exits; his words follow "🎤 Heard:" in the output (possibly over several lines). It costs about 1.5 s more per turn than MCP; accept that.
 One-sentence turn (keep double quotes, $ and backticks out of the text; speak-only: add --skip-stt):
-{ENV}/usr/bin/time -p /Users/francis.behnen/.local/bin/voicemode converse -m "<text>" --voice {VOICE} -d 60 2>&1 | grep -E "Heard|Timing|rror|^real" -A3
+{ENV}/usr/bin/time -p ~/.local/bin/voicemode converse -m "<text>" --voice {VOICE} -d 60 2>&1 | grep -E "Heard|Timing|rror|^real" -A3
 Split every reply of two or more sentences, with a short first chunk (under 80 chars) so the voice starts sooner:
-{ENV}/usr/bin/time -p /Users/francis.behnen/.local/bin/voicemode converse --script - --pause-after-ms 0 --voice {VOICE} -d 60 2>&1 <<'EOF' | grep -E '"reply"|"status"|"stopped_at"|rror|^real' -A2
+{ENV}/usr/bin/time -p ~/.local/bin/voicemode converse --script - --pause-after-ms 0 --voice {VOICE} -d 60 2>&1 <<'EOF' | grep -E '"reply"|"status"|"stopped_at"|rror|^real' -A2
 [{"say": "<first sentence>"}, {"ask": "<the rest>"}]
 EOF
 That returns survey JSON: his words are the ask turn's "reply" (null means no speech). "status": "tts_failed" on a turn means re-send that part as a single -m call.

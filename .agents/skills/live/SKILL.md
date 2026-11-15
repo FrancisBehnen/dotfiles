@@ -20,7 +20,7 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
    - **`NO ROUTE`:** stop and tell him.
 3. **One voice at a time:**
    - No `/talk` talker may be running in this session.
-   - `/Users/francis.behnen/.local/bin/voicemode conch status` must say the conch is free. Don't release it yourself. talk.py does not take the conch, so this check is the guard.
+   - `~/.local/bin/voicemode conch status` must say the conch is free. Don't release it yourself. talk.py does not take the conch, so this check is the guard.
    - If another live talker is running anywhere, talk.py itself refuses with `ERROR: ... another talker is listening`.
 4. **Find the mic:** the AirPods index if they are connected, otherwise 0, the built-in mic. Tell Francis which one you picked.
    `ffmpeg -hide_banner -f avfoundation -list_devices true -i "" 2>&1 | sed -n '/audio devices/,$p' | grep -i airpods | sed -E 's/.*\[([0-9]+)\] .*/\1/' | head -n 1`
@@ -32,7 +32,7 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
    - **`dutch`:** add `--dutch --stt-lang nl`.
 3. **Background mode (the default).** Run Bash with `run_in_background: true`, with the sandbox off, because it needs the mic, the router and `~/.local/state`. Put in MIC as a literal number, and ROUTE as the flag and path from "Pick the route", spelled out literally:
    ```
-   python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC ROUTE < /dev/null 2>&1; echo "TALK_EXIT=$?"
+   python3 -u ~/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC ROUTE < /dev/null 2>&1; echo "TALK_EXIT=$?"
    ```
    Wait for the start with `for i in $(seq 40); do grep -qE '^(bridge:|ERROR)' <output-file> && break; sleep 0.5; done; grep -E '^(TALKER|bridge:|ERROR)' <output-file>`. You should see two lines:
    - `TALKER pid=<pid>`: note the pid.
@@ -42,7 +42,7 @@ The talker is `~/Code/live-talker/talk.py` ("Mini", gpt-audio-mini). It holds th
 4. **Pane mode (on request).** Load the `herdr` skill and follow it to split a sibling pane with `--no-focus`.
    - **Run the command.** Use the command above without `< /dev/null`, so Enter can end his turn. The pane's shell does not have this session's variables, so ROUTE goes in with its path spelled out, and `\$?` reaches the pane unexpanded. Add `--dutch --stt-lang nl` as plain words. Add a topic as `--system \"\$(cat ~/.local/state/live-talker/live-brief.txt)\"`, so the pane's shell reads the file. Never expand the brief into the command line.
      ```
-     herdr pane run <pane> "python3 -u /Users/francis.behnen/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC ROUTE; echo TALK_EXIT=\$?"
+     herdr pane run <pane> "python3 -u ~/Code/live-talker/talk.py --model gpt-audio-mini --mic-device MIC ROUTE; echo TALK_EXIT=\$?"
      ```
    - **Watch it:** run `herdr pane wait-output <pane> --regex 'TALK_EXIT=[0-9]+' --source recent-unwrapped` with `run_in_background: true`. Never run it in the foreground, because that blocks every `ask_main`.
    - **Get the pid:** `herdr pane read <pane> --source recent-unwrapped --lines 20` shows the `TALKER pid=` line.
